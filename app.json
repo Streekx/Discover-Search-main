@@ -1,26 +1,35 @@
 {
   "expo": {
-    "name": "My App",
-    "slug": "my-app",
+    "name": "StreekX",
+    "slug": "streekx",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "streekx",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F0F8FF"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.myapp"
+      "bundleIdentifier": "com.streekx.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "StreekX needs microphone access for voice search.",
+        "NSSpeechRecognitionUsageDescription": "StreekX needs speech recognition for voice search."
+      }
     },
     "android": {
-      "package": "com.myapp",
+      "package": "com.streekx.app",
+      "permissions": [
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#A2D2FF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -37,7 +46,15 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-av",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow StreekX to use the microphone for voice search.",
+          "speechRecognitionPermission": "Allow StreekX to use speech recognition for voice search."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
