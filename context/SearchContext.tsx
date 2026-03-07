@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect } from "react";
 
 const BASE_URL = "https://streekxkk-streekx.hf.space";
 
@@ -28,13 +27,14 @@ export interface HistoryItem {
 
 export type SearchFilter = "all" | "images" | "videos" | "news" | "shopping" | "books" | "maps" | "ai";
 
-interface SearchSettings {
+export interface SearchSettings {
   safeSearch: boolean;
   incognitoMode: boolean;
   region: string;
   language: string;
   openLinksInApp: boolean;
   voiceLanguage: string;
+  safeSearchLevel: "strict" | "moderate" | "off";
 }
 
 interface SearchContextValue {
@@ -58,6 +58,8 @@ interface SearchContextValue {
   aiOverview: string;
   aiLoading: boolean;
   relatedSearches: string[];
+  suggestions: string[];
+  fetchSuggestions: (q: string) => Promise<void>;
 }
 
 const defaultSettings: SearchSettings = {
@@ -67,9 +69,37 @@ const defaultSettings: SearchSettings = {
   language: "en",
   openLinksInApp: true,
   voiceLanguage: "en-IN",
+  safeSearchLevel: "moderate",
 };
 
 const SearchContext = createContext<SearchContextValue | null>(null);
+
+function cleanDescription(desc: string): string {
+  if (!desc || desc === "No description." || desc.toLowerCase() === "no description") return "";
+  return desc.trim();
+}
+
+function cleanPrice(price: string): string | undefined {
+  if (!price || price === "N/A" || price === "null") return undefined;
+  if (price.length > 60) return undefined;
+  return price;
+}
+
+function mapItem(item: any, idx: number, filter: SearchFilter): SearchResult {
+  const desc = cleanDescription(item.description || item.snippet || item.content || "");
+  const price = cleanPrice(item.price);
+  return {
+    id: `${idx}-${Date.now()}-${Math.random().toString(36).substr(2,5)}`,
+    title: item.title || item.name || "Untitled",
+    url: item.url || item.link || "",
+    description: desc,
+    media: item.media || item.image || item.thumbnail || item.img || undefined,
+    source: item.source || item.domain || "",
+    price: filter === "shopping" ? price : undefined,
+    published: item.published || item.date || undefined,
+    category: filter,
+  };
+}
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState("");
@@ -83,10 +113,9 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [aiOverview, setAiOverview] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [relatedSearches, setRelatedSearches] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadPersisted();
-  }, []);
+  useEffect(() => { loadPersisted(); }, []);
 
   async function loadPersisted() {
     try {
@@ -141,9 +170,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const isSaved = useCallback((url: string) => {
-    return savedItems.some(s => s.url === url);
-  }, [savedItems]);
+  const isSaved = useCallback((url: string) => savedItems.some(s => s.url === url), [savedItems]);
 
   const updateSettings = useCallback(async (s: Partial<SearchSettings>) => {
     setSettings(prev => {
@@ -157,31 +184,51 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     setAiLoading(true);
     setAiOverview("");
     try {
-      const top = searchResults.slice(0, 3);
-      if (top.length === 0) return;
-      const summary = top
-        .filter(r => r.description)
-        .map(r => r.description)
-        .join(" ");
-      if (summary.length > 20) {
-        const sentences = summary.match(/[^.!?]+[.!?]+/g) || [];
-        const overview = sentences.slice(0, 3).join(" ").trim();
-        setAiOverview(overview || summary.slice(0, 300));
+      const withDesc = searchResults.filter(r => r.description && r.description.length > 30);
+      if (withDesc.length === 0) {
+        const fallback = searchResults.slice(0, 2).map(r => r.title).join(". ");
+        if (fallback) setAiOverview(`Based on search results for "${q}": ${fallback}.`);
+        return;
       }
-      const words = q.toLowerCase().split(" ").filter(w => w.length > 2);
-      const related = words.map(w => [
-        `${w} meaning`,
-        `${w} examples`,
-        `best ${w}`,
-        `${w} near me`,
-        `${w} 2025`,
-      ]).flat().slice(0, 6);
-      setRelatedSearches(related);
+      const raw = withDesc.slice(0, 4).map(r => r.description).join(" ");
+      const sentences = raw.match(/[^.!?]+[.!?]+/g) || [];
+      const overview = sentences.slice(0, 4).join(" ").trim();
+      setAiOverview(overview || raw.slice(0, 400));
+
+      const qWords = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const base = qWords[0] || q;
+      setRelatedSearches([
+        `${base} meaning`,
+        `${base} examples`,
+        `best ${base} 2025`,
+        `${base} vs alternatives`,
+        `how does ${base} work`,
+        `${base} latest news`,
+      ].slice(0, 6));
     } catch (_) {
     } finally {
       setAiLoading(false);
     }
   }, []);
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim()) { setSuggestions([]); return; }
+    try {
+      const historyMatches = history
+        .filter(h => h.query.toLowerCase().includes(q.toLowerCase()))
+        .map(h => h.query)
+        .slice(0, 4);
+      const generated = [
+        `${q} meaning`,
+        `${q} near me`,
+        `${q} 2025`,
+        `how to ${q}`,
+        `best ${q}`,
+        `${q} wikipedia`,
+      ];
+      setSuggestions([...new Set([...historyMatches, ...generated])].slice(0, 8));
+    } catch (_) {}
+  }, [history]);
 
   const search = useCallback(async (q: string, filter: SearchFilter = activeFilter) => {
     if (!q.trim()) return;
@@ -195,50 +242,43 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
     try {
       const apiFilter = filter === "ai" ? "all" : filter;
-      const response = await fetch(
-        `${BASE_URL}/search?q=${encodeURIComponent(q)}&filter=${apiFilter}`,
-        {
-          headers: { "Content-Type": "application/json" },
-          signal: AbortSignal.timeout(15000),
-        }
-      );
+      const safeParam = settings.safeSearch ? "&safe=active" : "&safe=off";
+      const regionParam = `&region=${settings.region}`;
+      const url = `${BASE_URL}/search?q=${encodeURIComponent(q)}&filter=${apiFilter}${safeParam}${regionParam}`;
 
-      if (!response.ok) throw new Error(`Search failed: ${response.status}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(url, {
+        headers: { "Accept": "application/json" },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
       const data = await response.json();
-      let mapped: SearchResult[] = [];
+      let raw: any[] = [];
 
       if (Array.isArray(data)) {
-        mapped = data.map((item: any, idx: number) => ({
-          id: `${idx}-${Date.now()}`,
-          title: item.title || item.name || "No title",
-          url: item.url || item.link || "",
-          description: item.description || item.snippet || item.content || "",
-          media: item.media || item.image || item.thumbnail || item.img || undefined,
-          source: item.source || item.domain || "",
-          price: item.price || undefined,
-          published: item.published || item.date || undefined,
-          category: filter,
-        }));
+        raw = data;
       } else if (data.results && Array.isArray(data.results)) {
-        mapped = data.results.map((item: any, idx: number) => ({
-          id: `${idx}-${Date.now()}`,
-          title: item.title || "No title",
-          url: item.url || item.link || "",
-          description: item.description || item.snippet || "",
-          media: item.media || item.image || item.thumbnail || undefined,
-          source: item.source || "",
-          price: item.price || undefined,
-          published: item.published || undefined,
-          category: filter,
-        }));
+        raw = data.results;
+      } else if (data.data && Array.isArray(data.data)) {
+        raw = data.data;
       }
 
+      const mapped = raw
+        .filter(item => item.title && item.url)
+        .map((item, idx) => mapItem(item, idx, filter));
+
       setResults(mapped);
-      generateAiOverview(mapped, q);
+      if (filter !== "images") {
+        generateAiOverview(mapped, q);
+      }
     } catch (err: any) {
-      if (err.name === "TimeoutError") {
-        setError("Search timed out. Please try again.");
+      if (err.name === "AbortError") {
+        setError("Search timed out. The server is warming up — please try again.");
       } else {
         setError(err.message || "Search failed. Check your connection.");
       }
@@ -246,7 +286,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [activeFilter, addToHistory, generateAiOverview]);
+  }, [activeFilter, addToHistory, generateAiOverview, settings.safeSearch, settings.region]);
 
   const value = useMemo(() => ({
     query, setQuery,
@@ -258,11 +298,13 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     settings, updateSettings,
     aiOverview, aiLoading,
     relatedSearches,
+    suggestions, fetchSuggestions,
   }), [
     query, activeFilter, results, isLoading, error,
     search, history, clearHistory, removeHistoryItem,
     savedItems, saveItem, unsaveItem, isSaved,
     settings, updateSettings, aiOverview, aiLoading, relatedSearches,
+    suggestions, fetchSuggestions,
   ]);
 
   return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;

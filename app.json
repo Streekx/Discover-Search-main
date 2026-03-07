@@ -17,8 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.streekx.app",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "StreekX needs microphone access for voice search.",
-        "NSSpeechRecognitionUsageDescription": "StreekX needs speech recognition for voice search."
+        "NSMicrophoneUsageDescription": "Allow StreekX to use the microphone for voice search.",
+        "NSSpeechRecognitionUsageDescription": "Allow StreekX to use speech recognition for voice search."
       }
     },
     "android": {
@@ -26,7 +26,9 @@
       "permissions": [
         "RECORD_AUDIO",
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#A2D2FF",
@@ -59,6 +61,14 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://replit.com/"
+      },
+      "eas": {
+        "projectId": "f0a27ace-6f34-4738-bda0-6137d06a57c9"
+      }
     }
   }
 }

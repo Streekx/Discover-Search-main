@@ -217,21 +217,19 @@ export default function SettingsScreen() {
             right={null}
           />
           <SettingRow
-            icon="server-outline"
+            icon="globe-outline"
             iconColor="#10B981"
-            label="Search Engine"
-            sublabel="streekxkk-streekx.hf.space"
+            label="Independent Search"
+            sublabel="Private, secure, and fast"
             right={null}
           />
-          <TouchableOpacity onPress={() => Linking.openURL("https://streekxkk-streekx.hf.space")}>
-            <SettingRow
-              icon="open-outline"
-              iconColor="#6366F1"
-              label="Backend Status"
-              sublabel="Check API health"
-              right={<Ionicons name="chevron-forward" size={18} color={Colors.light.textMuted} />}
-            />
-          </TouchableOpacity>
+          <SettingRow
+            icon="shield-checkmark-outline"
+            iconColor="#6366F1"
+            label="Privacy First"
+            sublabel="Your searches stay private"
+            right={null}
+          />
         </SectionGroup>
 
         <View style={styles.brandRow}>

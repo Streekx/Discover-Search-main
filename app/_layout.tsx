@@ -26,8 +26,11 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="search" options={{ headerShown: false, animation: "slide_from_right" }} />
+      <Stack.Screen name="search-input" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen name="browser" options={{ headerShown: false, animation: "slide_from_bottom" }} />
       <Stack.Screen name="ai-assistant" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+      <Stack.Screen name="ai-mode" options={{ headerShown: false, animation: "slide_from_right" }} />
+      <Stack.Screen name="discover" options={{ headerShown: false, animation: "slide_from_right" }} />
     </Stack>
   );
 }

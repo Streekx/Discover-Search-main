@@ -110,6 +110,11 @@ export default function SearchScreen() {
 
   function handleFilter(f: SearchFilter) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (f === "ai") {
+      const q = inputValue.trim() || query;
+      if (q) router.push({ pathname: "/ai-mode", params: { q } });
+      return;
+    }
     setActiveFilter(f);
     const q = inputValue.trim();
     if (q) search(q, f);
