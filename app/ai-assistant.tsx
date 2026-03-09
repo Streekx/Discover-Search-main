@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput,
-  FlatList, Platform, ActivityIndicator, Animated, Dimensions, Image
+  View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
+  PanResponder, Platform, ActivityIndicator
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
@@ -14,28 +14,23 @@ import {
 } from "expo-speech-recognition";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSearch } from "@/context/SearchContext";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const BASE_URL = "https://streekxkk-streekx.hf.space";
 
-interface Message {
+interface Particle {
   id: string;
-  type: "user" | "assistant";
-  text: string;
-  sources?: { title: string; url: string; domain: string; favicon: string }[];
-  timestamp: number;
+  x: Animated.Value;
+  y: Animated.Value;
+  opacity: Animated.Value;
 }
 
 function getDomain(url: string): string {
   try { return new URL(url).hostname.replace("www.", ""); } catch { return ""; }
 }
-function getFavicon(url: string): string {
-  return `https://www.google.com/s2/favicons?domain=${getDomain(url)}&sz=32`;
-}
 
-function OrbAnimation({ isActive }: { isActive: boolean }) {
+function ParticleOrb({ isActive, onParticleScatter }: { isActive: boolean; onParticleScatter: (x: number, y: number) => void }) {
   const pulse1 = useRef(new Animated.Value(1)).current;
   const pulse2 = useRef(new Animated.Value(1)).current;
   const pulse3 = useRef(new Animated.Value(1)).current;
@@ -75,47 +70,54 @@ function OrbAnimation({ isActive }: { isActive: boolean }) {
   const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
   return (
-    <View style={orbStyles.container}>
-      <Animated.View style={[orbStyles.ring3, { transform: [{ scale: pulse3 }], opacity: glow }]} />
-      <Animated.View style={[orbStyles.ring2, { transform: [{ scale: pulse2 }] }]} />
-      <Animated.View style={[orbStyles.ring1, { transform: [{ scale: pulse1 }] }]}>
-        <Animated.View style={{ transform: [{ rotate: spin }], borderRadius: 40, overflow: "hidden", width: "100%", height: "100%" }}>
+    <TouchableOpacity
+      style={styles.orbContainer}
+      activeOpacity={0.9}
+      onPress={(e) => {
+        const { locationX, locationY } = e.nativeEvent;
+        onParticleScatter(locationX, locationY);
+      }}
+    >
+      <Animated.View style={[styles.ring3, { transform: [{ scale: pulse3 }], opacity: glow }]} />
+      <Animated.View style={[styles.ring2, { transform: [{ scale: pulse2 }] }]} />
+      <Animated.View style={[styles.ring1, { transform: [{ scale: pulse1 }] }]}>
+        <Animated.View style={{ transform: [{ rotate: spin }], borderRadius: 80, overflow: "hidden", width: "100%", height: "100%" }}>
           <LinearGradient
             colors={isActive ? ["#1E6FD9", "#0EA5E9", "#A2D2FF", "#1E6FD9"] : ["#E2E8F0", "#CBD5E1"]}
-            style={orbStyles.grad}
+            style={styles.grad}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           />
         </Animated.View>
-        <MaterialCommunityIcons
-          name={isActive ? "creation" : "robot-excited-outline"}
-          size={28}
-          color={isActive ? "#FFF" : Colors.light.textSecondary}
-          style={orbStyles.icon}
+        <Ionicons
+          name={isActive ? "volume-high" : "mic-outline"}
+          size={48}
+          color="#FFF"
+          style={styles.orbIcon}
         />
       </Animated.View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const orbStyles = StyleSheet.create({
-  container: { width: 100, height: 100, alignItems: "center", justifyContent: "center" },
+  container: { width: 200, height: 200, alignItems: "center", justifyContent: "center" },
   ring3: {
     position: "absolute",
-    width: 100, height: 100,
-    borderRadius: 50,
+    width: 200, height: 200,
+    borderRadius: 100,
     backgroundColor: "rgba(162,210,255,0.15)",
   },
   ring2: {
     position: "absolute",
-    width: 82, height: 82,
-    borderRadius: 41,
+    width: 164, height: 164,
+    borderRadius: 82,
     backgroundColor: "rgba(162,210,255,0.2)",
     borderWidth: 1,
     borderColor: "rgba(162,210,255,0.4)",
   },
   ring1: {
-    width: 68, height: 68,
-    borderRadius: 34,
+    width: 136, height: 136,
+    borderRadius: 68,
     overflow: "hidden",
     alignItems: "center", justifyContent: "center",
     shadowColor: Colors.light.tint,
@@ -125,26 +127,18 @@ const orbStyles = StyleSheet.create({
     elevation: 8,
   },
   grad: { ...StyleSheet.absoluteFillObject },
-  icon: { position: "absolute" },
+  icon: { position: "absolute", fontSize: 64 },
 });
 
 export default function AIAssistantScreen() {
   const insets = useSafeAreaInsets();
   const { settings } = useSearch();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      type: "assistant",
-      text: "Hi! I'm StreekX AI. Ask me anything — I'll search the web and give you a smart answer. Tap the mic to speak!",
-      timestamp: Date.now(),
-    },
-  ]);
-  const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const listRef = useRef<FlatList>(null);
-  const inputRef = useRef<TextInput>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastResponse, setLastResponse] = useState<string>("");
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const panResponder = useRef<any>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -153,8 +147,7 @@ export default function AIAssistantScreen() {
     const t = event.results[0]?.transcript || "";
     if (event.isFinal && t) {
       setIsListening(false);
-      setInputText(t);
-      sendMessage(t);
+      processQuery(t);
     }
   });
   useSpeechRecognitionEvent("end", () => setIsListening(false));
@@ -175,28 +168,15 @@ export default function AIAssistantScreen() {
     setIsListening(false);
   }
 
-  const sendMessage = useCallback(async (overrideText?: string) => {
-    const text = (overrideText || inputText).trim();
-    if (!text) return;
-
-    setInputText("");
+  const processQuery = useCallback(async (query: string) => {
     setIsLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      type: "user",
-      text,
-      timestamp: Date.now(),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), 30000);
       const res = await fetch(
-        `${BASE_URL}/search?q=${encodeURIComponent(text)}&filter=all`,
+        `${BASE_URL}/search?q=${encodeURIComponent(query)}&filter=all`,
         { signal: controller.signal, headers: { Accept: "application/json" } }
       );
       clearTimeout(id);
@@ -216,27 +196,12 @@ export default function AIAssistantScreen() {
         const sentences = combined.match(/[^.!?]+[.!?]+/g) || [];
         answer = sentences.slice(0, 4).join(" ").trim() || combined.slice(0, 400);
       } else if (raw.length > 0) {
-        answer = `Based on search results, here are the top findings about "${text}": ${raw.slice(0, 3).map((i: any) => i.title).join(", ")}.`;
+        answer = `Based on search results, here are the top findings about "${query}": ${raw.slice(0, 3).map((i: any) => i.title).join(", ")}.`;
       } else {
-        answer = `I couldn't find specific information about "${text}". Try rephrasing your question.`;
+        answer = `I couldn't find specific information about "${query}". Try rephrasing your question.`;
       }
 
-      const sources = raw.slice(0, 3).map((i: any) => ({
-        title: i.title || "",
-        url: i.url || i.link || "",
-        domain: getDomain(i.url || i.link || ""),
-        favicon: getFavicon(i.url || i.link || ""),
-      }));
-
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        type: "assistant",
-        text: answer,
-        sources,
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      setLastResponse(answer);
 
       if (settings.voiceLanguage) {
         setIsSpeaking(true);
@@ -249,321 +214,276 @@ export default function AIAssistantScreen() {
         });
       }
     } catch (err: any) {
-      const errMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        type: "assistant",
-        text: err.name === "AbortError"
-          ? "The search timed out. Please try again."
-          : "Sorry, I couldn't connect. Please check your internet connection.",
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, errMsg]);
+      const errMsg = "Sorry, I couldn't connect. Please check your internet connection.";
+      setLastResponse(errMsg);
+      if (settings.voiceLanguage) {
+        setIsSpeaking(true);
+        Speech.speak(errMsg, {
+          language: settings.voiceLanguage || "en-IN",
+          rate: 0.92,
+          onDone: () => setIsSpeaking(false),
+          onStopped: () => setIsSpeaking(false),
+        });
+      }
     } finally {
       setIsLoading(false);
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [inputText, settings.voiceLanguage]);
+  }, [settings.voiceLanguage]);
 
-  function toggleSpeak(text: string) {
-    if (isSpeaking) {
-      Speech.stop();
-      setIsSpeaking(false);
-    } else {
-      setIsSpeaking(true);
-      Speech.speak(text, {
-        language: settings.voiceLanguage || "en-IN",
-        rate: 0.92,
-        onDone: () => setIsSpeaking(false),
-        onStopped: () => setIsSpeaking(false),
-      });
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }
+  const scatterParticles = useCallback((x: number, y: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const newParticles: Particle[] = [];
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const distance = 80 + Math.random() * 40;
+      const endX = x + Math.cos(angle) * distance;
+      const endY = y + Math.sin(angle) * distance;
 
-  function renderMessage({ item }: { item: Message }) {
-    if (item.type === "user") {
-      return (
-        <View style={[styles.bubble, styles.userBubble]}>
-          <Text style={styles.userText}>{item.text}</Text>
-        </View>
-      );
+      const particle: Particle = {
+        id: `${Date.now()}-${i}`,
+        x: new Animated.Value(0),
+        y: new Animated.Value(0),
+        opacity: new Animated.Value(1),
+      };
+
+      Animated.parallel([
+        Animated.timing(particle.x, {
+          toValue: endX - x,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.y, {
+          toValue: endY - y,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(particle.opacity, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      newParticles.push(particle);
     }
-    return (
-      <View style={styles.assistantRow}>
-        <View style={styles.aiBubble}>
-          <Text style={styles.aiText}>{item.text}</Text>
-          {item.sources && item.sources.length > 0 && (
-            <View style={styles.sourcesWrap}>
-              <Text style={styles.sourcesLabel}>Sources</Text>
-              {item.sources.map((src, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.srcRow}
-                  onPress={() => router.push({ pathname: "/browser", params: { url: src.url } })}
-                >
-                  <Image source={{ uri: src.favicon }} style={styles.srcFav} />
-                  <Text style={styles.srcDomain} numberOfLines={1}>{src.domain}</Text>
-                  <Ionicons name="chevron-forward" size={12} color={Colors.light.textMuted} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          <TouchableOpacity style={styles.speakBtn} onPress={() => toggleSpeak(item.text)}>
-            <Ionicons name={isSpeaking ? "volume-high" : "volume-medium-outline"} size={14} color={Colors.light.tint} />
-            <Text style={styles.speakBtnText}>{isSpeaking ? "Speaking..." : "Listen"}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+    setParticles(newParticles);
+    setTimeout(() => setParticles([]), 700);
+  }, []);
 
   const isActive = isLoading || isListening;
 
   return (
-    <View style={[styles.container, { paddingTop: topPad }]}>
+    <View style={[styles.container, { paddingTop: topPad, paddingBottom: botPad }]}>
       <LinearGradient
         colors={["rgba(162,210,255,0.15)", "rgba(255,255,255,0)"]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 0.6 }}
       />
 
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={Colors.light.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>StreekX AI</Text>
-        <TouchableOpacity style={styles.clearBtn} onPress={() => {
-          Speech.stop();
-          setIsSpeaking(false);
-          setMessages([{
-            id: "welcome",
-            type: "assistant",
-            text: "Hi! I'm StreekX AI. Ask me anything — I'll search the web and give you a smart answer.",
-            timestamp: Date.now(),
-          }]);
-        }}>
-          <Ionicons name="refresh-outline" size={20} color={Colors.light.textSecondary} />
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+        <Ionicons name="close" size={24} color={Colors.light.text} />
+      </TouchableOpacity>
+
+      <View style={styles.content}>
+        <Text style={styles.title}>StreekX AI</Text>
+
+        <View style={styles.orbWrapper}>
+          <ParticleOrb isActive={isActive} onParticleScatter={scatterParticles} />
+          {particles.map(p => (
+            <Animated.View
+              key={p.id}
+              style={[
+                styles.particle,
+                {
+                  transform: [
+                    { translateX: p.x },
+                    { translateY: p.y },
+                  ],
+                  opacity: p.opacity,
+                },
+              ]}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.status}>
+          {isListening ? "Listening..." : isLoading ? "Thinking..." : isSpeaking ? "Speaking..." : "Say something..."}
+        </Text>
+
+        {lastResponse ? (
+          <View style={styles.responseBox}>
+            <Text style={styles.responseText}>{lastResponse}</Text>
+          </View>
+        ) : null}
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={m => m.id}
-          contentContainerStyle={[styles.listContent, { paddingBottom: 20 }]}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={styles.orbSection}>
-              <OrbAnimation isActive={isActive} />
-              <Text style={styles.orbLabel}>
-                {isListening ? "Listening..." : isLoading ? "Thinking..." : isSpeaking ? "Speaking..." : "StreekX AI"}
-              </Text>
-            </View>
-          }
-          renderItem={renderMessage}
-          ListFooterComponent={
-            isLoading ? (
-              <View style={styles.loadingDots}>
-                <View style={styles.aiBubble}>
-                  <ActivityIndicator size="small" color={Colors.light.tint} />
-                  <Text style={styles.aiText}>Searching and thinking...</Text>
-                </View>
-              </View>
-            ) : null
-          }
-        />
-
-        <View style={[styles.inputBar, { paddingBottom: botPad + 8 }]}>
-          <View style={styles.inputWrap}>
-            <TextInput
-              ref={inputRef}
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={() => sendMessage()}
-              placeholder="Ask anything..."
-              placeholderTextColor={Colors.light.textMuted}
-              returnKeyType="send"
-              multiline
-              maxLength={500}
-            />
-            {inputText.length > 0 && (
-              <TouchableOpacity
-                style={styles.sendBtn}
-                onPress={() => sendMessage()}
-                disabled={isLoading}
-              >
-                <LinearGradient colors={["#1E6FD9", "#0EA5E9"]} style={styles.sendGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <Ionicons name="send" size={18} color="#FFF" />
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-
+      <View style={styles.footer}>
+        {!isListening && !isLoading && (
           <TouchableOpacity
-            style={[styles.micButton, isListening && styles.micButtonActive]}
-            onPress={isListening ? stopListening : startListening}
+            style={[styles.micBtn, { opacity: isSpeaking ? 0.6 : 1 }]}
+            onPress={startListening}
+            disabled={isSpeaking}
           >
-            <Ionicons name={isListening ? "mic" : "mic-outline"} size={24} color={isListening ? "#FFF" : Colors.light.tint} />
+            <LinearGradient colors={["#1E6FD9", "#0EA5E9"]} style={styles.micGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="mic-outline" size={28} color="#FFF" />
+            </LinearGradient>
           </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+        )}
+
+        {isListening && (
+          <TouchableOpacity style={[styles.micBtn, styles.micBtnActive]} onPress={stopListening}>
+            <LinearGradient colors={["#EF4444", "#DC2626"]} style={styles.micGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="mic" size={28} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {isSpeaking && (
+          <TouchableOpacity
+            style={[styles.micBtn, styles.micBtnActive]}
+            onPress={() => {
+              Speech.stop();
+              setIsSpeaking(false);
+            }}
+          >
+            <LinearGradient colors={["#F59E0B", "#D97706"]} style={styles.micGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="volume-high" size={28} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
-  header: {
-    flexDirection: "row",
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    justifyContent: "space-between",
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.accentLight,
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 12,
+    justifyContent: "center",
+    zIndex: 10,
   },
-  backBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.light.accentLight,
-    alignItems: "center", justifyContent: "center",
+  content: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
   },
-  headerTitle: { flex: 1, fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.light.text },
-  clearBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.light.accentLight,
-    alignItems: "center", justifyContent: "center",
-  },
-
-  orbSection: { alignItems: "center", paddingVertical: 20, gap: 8 },
-  orbLabel: {
+  title: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: Colors.light.textSecondary,
+    fontSize: 18,
+    color: Colors.light.text,
+    marginBottom: 40,
   },
-
-  listContent: { paddingHorizontal: 16, paddingTop: 8 },
-
-  bubble: {
-    maxWidth: "80%",
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 10,
+  orbWrapper: {
+    width: 220,
+    height: 220,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 30,
   },
-  userBubble: {
-    alignSelf: "flex-end",
+  orbContainer: {
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ring3: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(162,210,255,0.15)",
+  },
+  ring2: {
+    position: "absolute",
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    backgroundColor: "rgba(162,210,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(162,210,255,0.4)",
+  },
+  ring1: {
+    width: 136,
+    height: 136,
+    borderRadius: 68,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.light.tint,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  grad: { ...StyleSheet.absoluteFillObject },
+  orbIcon: { position: "absolute" },
+  particle: {
+    position: "absolute",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: Colors.light.tint,
-    borderBottomRightRadius: 6,
   },
-  userText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
-    color: "#FFF",
-    lineHeight: 22,
+  status: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: "center",
+    marginBottom: 20,
   },
-  assistantRow: { alignSelf: "flex-start", maxWidth: "90%", marginBottom: 10 },
-  aiBubble: {
+  responseBox: {
+    maxWidth: "90%",
     backgroundColor: "#FFF",
-    borderRadius: 20,
-    borderTopLeftRadius: 6,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: Colors.light.border,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  aiText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
-    color: Colors.light.text,
-    lineHeight: 23,
-    marginBottom: 10,
-  },
-  sourcesWrap: { marginTop: 4, marginBottom: 8 },
-  sourcesLabel: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
-    color: Colors.light.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  srcRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 5,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-  },
-  srcFav: { width: 16, height: 16, borderRadius: 3 },
-  srcDomain: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.light.tint,
-    flex: 1,
-  },
-  speakBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    alignSelf: "flex-start",
-  },
-  speakBtnText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.light.tint,
-  },
-
-  loadingDots: { paddingHorizontal: 16, marginBottom: 10 },
-
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    gap: 10,
-    backgroundColor: "#FFF",
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 10,
+    elevation: 2,
   },
-  inputWrap: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    backgroundColor: Colors.light.filterInactive,
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    minHeight: 46,
-    maxHeight: 120,
-    gap: 8,
-  },
-  input: {
-    flex: 1,
+  responseText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.light.text,
-    maxHeight: 100,
     lineHeight: 22,
+    textAlign: "center",
   },
-  sendBtn: { borderRadius: 20, overflow: "hidden" },
-  sendGrad: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  micButton: {
-    width: 50, height: 50, borderRadius: 25,
-    backgroundColor: Colors.light.accentLight,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: Colors.light.tint,
+  footer: {
+    alignItems: "center",
+    paddingBottom: 30,
   },
-  micButtonActive: { backgroundColor: "#EF4444", borderColor: "#EF4444" },
+  micBtn: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    overflow: "hidden",
+  },
+  micBtnActive: {},
+  micGrad: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
 });
