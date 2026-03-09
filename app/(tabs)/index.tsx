@@ -58,10 +58,14 @@ export default function HomeScreen() {
     router.push("/ai-assistant");
   }
 
+  function handleAiMode() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/ai-mode");
+  }
+
   const navItems = [
     { label: "History", icon: "time-outline", path: "/(tabs)/history" },
     { label: "Saved", icon: "bookmark-outline", path: "/(tabs)/saved" },
-    { label: "Discover", icon: "compass-outline", path: "/discover" },
     { label: "Settings", icon: "settings-outline", path: "/(tabs)/settings" },
   ];
 
@@ -108,35 +112,33 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.iconBtn} onPress={handleVoice} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="mic-outline" size={21} color={Colors.light.tint} />
           </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleAi} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <MaterialCommunityIcons name="robot-outline" size={20} color={Colors.light.tint} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
 
-      {history.length > 0 && (
-        <View style={styles.recentSection}>
-          <Text style={styles.recentLabel}>Recent</Text>
-          <View style={styles.recentRow}>
-            {history.slice(0, 6).map((item, idx) => (
-              <TouchableOpacity key={idx} style={styles.recentChip} onPress={() => {
-                search(item.query, "all");
-                router.push({ pathname: "/search", params: { q: item.query, filter: "all" } });
-              }}>
-                <Ionicons name="time-outline" size={12} color={Colors.light.textSecondary} />
-                <Text style={styles.recentText} numberOfLines={1}>{item.query}</Text>
-              </TouchableOpacity>
-            ))}
+      <View style={styles.aiShortcuts}>
+        <TouchableOpacity style={styles.aiShortcut} onPress={handleAiMode} activeOpacity={0.8}>
+          <View style={styles.aiIconWrapper}>
+            <MaterialCommunityIcons name="sparkles" size={18} color={Colors.light.tint} />
           </View>
-        </View>
-      )}
+          <Text style={styles.aiShortcutText}>AI Mode</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.aiShortcut} onPress={handleAi} activeOpacity={0.8}>
+          <View style={styles.aiIconWrapper}>
+            <MaterialCommunityIcons name="robot-outline" size={18} color={Colors.light.tint} />
+          </View>
+          <Text style={styles.aiShortcutText}>AI Assistant</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.trendingSection}>
         <Text style={styles.trendingLabel}>Trending</Text>
-        <View style={styles.trendingGrid}>
-          {TRENDING.slice(0, 6).map((term, idx) => (
-            <TouchableOpacity key={idx} style={styles.trendBox} onPress={() => handleTrending(term)} activeOpacity={0.85}>
-              <View style={styles.trendIconWrap}>
-                <Ionicons name="trending-up" size={16} color={Colors.light.tint} />
-              </View>
-              <Text style={styles.trendBoxText} numberOfLines={2}>{term}</Text>
+        <View style={styles.trendingList}>
+          {TRENDING.slice(0, 8).map((term, idx) => (
+            <TouchableOpacity key={idx} style={styles.trendPill} onPress={() => handleTrending(term)} activeOpacity={0.8}>
+              <Text style={styles.trendPillText}>{term}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -246,6 +248,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  aiShortcuts: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+  },
+  aiShortcut: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  aiIconWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.light.accentLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  aiShortcutText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.light.text,
+  },
+
   trendingSection: { marginBottom: 20 },
   trendingLabel: {
     fontFamily: "Inter_600SemiBold",
@@ -253,62 +291,27 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 12,
   },
-  trendingGrid: {
+  trendingList: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 8,
   },
-  trendBox: {
-    width: (width - 60) / 2,
+  trendPill: {
     backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: Colors.light.border,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    minHeight: 88,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  trendIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.light.accentLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  trendBoxText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: Colors.light.text,
-    lineHeight: 20,
-  },
-
-  recentSection: { marginBottom: 16 },
-  recentLabel: {
+  trendPillText: {
     fontFamily: "Inter_500Medium",
     fontSize: 13,
-    color: Colors.light.textSecondary,
-    marginBottom: 10,
-  },
-  recentRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  recentChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(162,210,255,0.15)",
-    borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    maxWidth: (width - 60) / 2,
-  },
-  recentText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
     color: Colors.light.text,
   },
 
