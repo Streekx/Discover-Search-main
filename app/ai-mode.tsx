@@ -1,279 +1,310 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Platform, ActivityIndicator, Image, Animated, Dimensions
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  FlatList, Platform, ActivityIndicator, Animated, Image, Pressable
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
+import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { useSearch, SearchResult } from "@/context/SearchContext";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { useSearch } from "@/context/SearchContext";
 
 const { width } = Dimensions.get("window");
 const BASE_URL = "https://streekxkk-streekx.hf.space";
 
+import { Dimensions } from "react-native";
+
+interface ChatMessage {
+  id: string;
+  type: "user" | "assistant";
+  text: string;
+  timestamp: number;
+}
+
 function getDomain(url: string): string {
   try { return new URL(url).hostname.replace("www.", ""); } catch { return ""; }
 }
+
 function getFavicon(url: string): string {
   return `https://www.google.com/s2/favicons?domain=${getDomain(url)}&sz=32`;
 }
 
 export default function AIModeScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ q: string }>();
-  const { settings, saveItem, isSaved } = useSearch();
-
-  const [query] = useState(params.q || "");
-  const [loading, setLoading] = useState(true);
-  const [sources, setSources] = useState<SearchResult[]>([]);
-  const [aiSummary, setAiSummary] = useState("");
-  const [relatedQuestions, setRelatedQuestions] = useState<string[]>([]);
+  const { settings } = useSearch();
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome",
+      type: "assistant",
+      text: "Hi! I'm StreekX AI Chat. Ask me anything and I'll search the web and give you smart answers. You can also use voice search and file attachments.",
+      timestamp: Date.now(),
+    },
+  ]);
+  const [inputText, setInputText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("standard");
+  const [showModelMenu, setShowModelMenu] = useState(false);
+  const listRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const orbAnim = useRef(new Animated.Value(0)).current;
-  const dotAnims = [
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-  ];
+  useSpeechRecognitionEvent("result", (event) => {
+    const t = event.results[0]?.transcript || "";
+    if (event.isFinal && t) {
+      setIsListening(false);
+      setInputText(t);
+      sendMessage(t);
+    }
+  });
+  useSpeechRecognitionEvent("end", () => setIsListening(false));
+  useSpeechRecognitionEvent("error", () => setIsListening(false));
 
-  useEffect(() => {
-    startOrbAnim();
-    if (query) fetchAiResults(query);
-  }, []);
-
-  function startOrbAnim() {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(orbAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-        Animated.timing(orbAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
-    dotAnims.forEach((anim, i) => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 200),
-          Animated.timing(anim, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0, duration: 400, useNativeDriver: true }),
-        ])
-      ).start();
-    });
+  async function startListening() {
+    try {
+      const p = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!p.granted) return;
+      setIsListening(true);
+      ExpoSpeechRecognitionModule.start({ lang: settings.voiceLanguage || "en-IN", interimResults: true });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (_) { setIsListening(false); }
   }
 
-  async function fetchAiResults(q: string) {
-    setLoading(true);
+  function stopListening() {
+    ExpoSpeechRecognitionModule.stop();
+    setIsListening(false);
+  }
+
+  const sendMessage = useCallback(async (overrideText?: string) => {
+    const text = (overrideText || inputText).trim();
+    if (!text) return;
+
+    setInputText("");
+    setIsLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      type: "user",
+      text,
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+
     try {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), 30000);
       const res = await fetch(
-        `${BASE_URL}/search?q=${encodeURIComponent(q)}&filter=all`,
+        `${BASE_URL}/search?q=${encodeURIComponent(text)}&filter=all`,
         { signal: controller.signal, headers: { Accept: "application/json" } }
       );
       clearTimeout(id);
-      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       let raw: any[] = Array.isArray(data) ? data : (data.results || []);
-      const mapped: SearchResult[] = raw
-        .filter((i: any) => i.title && i.url)
-        .map((i: any, idx: number) => ({
-          id: `ai-${idx}`,
-          title: i.title,
-          url: i.url || i.link || "",
-          description: (i.description && i.description !== "No description." && i.description !== "N/A") ? i.description : "",
-          media: i.media || i.image || undefined,
-          source: i.source || "",
-          category: "ai",
-        }));
-      setSources(mapped);
-      buildSummary(mapped, q);
-    } catch (_) {
-      setAiSummary("Unable to fetch AI results. Please try again.");
+
+      const withDesc = raw.filter((i: any) =>
+        i.description &&
+        i.description !== "No description." &&
+        i.description !== "N/A" &&
+        i.description.length > 30
+      );
+
+      let answer = "";
+      if (withDesc.length > 0) {
+        const combined = withDesc.slice(0, 5).map((i: any) => i.description).join(" ");
+        const sentences = combined.match(/[^.!?]+[.!?]+/g) || [];
+        answer = sentences.slice(0, 4).join(" ").trim() || combined.slice(0, 400);
+      } else if (raw.length > 0) {
+        answer = `Based on search results, here are the top findings about "${text}": ${raw.slice(0, 3).map((i: any) => i.title).join(", ")}.`;
+      } else {
+        answer = `I couldn't find specific information about "${text}". Try rephrasing your question.`;
+      }
+
+      const assistantMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: "assistant",
+        text: answer,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+
+      if (settings.voiceLanguage) {
+        setIsSpeaking(true);
+        Speech.speak(answer, {
+          language: settings.voiceLanguage || "en-IN",
+          rate: 0.92,
+          onDone: () => setIsSpeaking(false),
+          onStopped: () => setIsSpeaking(false),
+          onError: () => setIsSpeaking(false),
+        });
+      }
+    } catch (err: any) {
+      const errMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: "assistant",
+        text: err.name === "AbortError"
+          ? "The search timed out. Please try again."
+          : "Sorry, I couldn't connect. Please check your internet connection.",
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errMsg]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }
+  }, [inputText, settings.voiceLanguage]);
 
-  function buildSummary(results: SearchResult[], q: string) {
-    const withDesc = results.filter(r => r.description && r.description.length > 30);
-    if (withDesc.length === 0) {
-      setAiSummary(`Here are the top search results for "${q}". Click any source below to read more.`);
-      setRelatedQuestions([`What is ${q}?`, `${q} explained`, `${q} examples`, `${q} vs alternatives`]);
-      return;
+  function renderMessage({ item }: { item: ChatMessage }) {
+    if (item.type === "user") {
+      return (
+        <View style={[styles.bubble, styles.userBubble]}>
+          <Text style={styles.userText}>{item.text}</Text>
+        </View>
+      );
     }
-    const raw = withDesc.slice(0, 5).map(r => r.description).join(" ");
-    const sentences = raw.match(/[^.!?]+[.!?]+/g) || [];
-    const summary = sentences.slice(0, 5).join(" ").trim() || raw.slice(0, 500);
-    setAiSummary(summary);
-    const base = q.toLowerCase().split(/\s+/)[0];
-    setRelatedQuestions([
-      `What is ${q}?`,
-      `How does ${q} work?`,
-      `Best ${q} examples`,
-      `${q} vs alternatives`,
-      `${q} latest news`,
-    ]);
+    return (
+      <View style={styles.assistantRow}>
+        <View style={styles.aiBubble}>
+          <Text style={styles.aiText}>{item.text}</Text>
+        </View>
+      </View>
+    );
   }
 
-  function handleSpeak() {
-    if (isSpeaking) {
-      Speech.stop();
-      setIsSpeaking(false);
-    } else {
-      setIsSpeaking(true);
-      Speech.speak(aiSummary, {
-        language: "en-IN",
-        rate: 0.9,
-        onDone: () => setIsSpeaking(false),
-        onStopped: () => setIsSpeaking(false),
-      });
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }
-
-  function handleRelated(q: string) {
-    router.push({ pathname: "/ai-mode", params: { q } });
-  }
-
-  const orbScale = orbAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] });
+  const hasText = inputText.trim().length > 0;
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <LinearGradient
-        colors={["rgba(162,210,255,0.18)", "rgba(255,255,255,0)"]}
+        colors={["rgba(162,210,255,0.15)", "rgba(255,255,255,0)"]}
         style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 0.5 }}
+        start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 0.6 }}
       />
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={Colors.light.text} />
         </TouchableOpacity>
-        <View style={styles.headerBadge}>
-          <MaterialCommunityIcons name="creation" size={14} color={Colors.light.tint} />
-          <Text style={styles.headerBadgeText}>AI Mode</Text>
-        </View>
-        <TouchableOpacity style={styles.speakBtn} onPress={handleSpeak}>
-          <Ionicons name={isSpeaking ? "volume-high" : "volume-medium-outline"} size={20} color={Colors.light.tint} />
+        <Text style={styles.headerTitle}>StreekX AI Chat</Text>
+        <TouchableOpacity
+          style={styles.modelBtn}
+          onPress={() => setShowModelMenu(!showModelMenu)}
+        >
+          <MaterialCommunityIcons name="brain" size={18} color={Colors.light.tint} />
+          <Text style={styles.modelBtnText}>{selectedModel}</Text>
+          <Ionicons name={showModelMenu ? "chevron-up" : "chevron-down"} size={14} color={Colors.light.textSecondary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: botPad + 32 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.queryText}>{query}</Text>
-
-        {loading ? (
-          <View style={styles.loadingCard}>
-            <Animated.View style={[styles.orb, { transform: [{ scale: orbScale }] }]}>
-              <LinearGradient
-                colors={["#1E6FD9", "#0EA5E9", "#A2D2FF"]}
-                style={styles.orbInner}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              />
-            </Animated.View>
-            <View style={styles.dotsRow}>
-              {dotAnims.map((anim, i) => (
-                <Animated.View
-                  key={i}
-                  style={[styles.dot, { opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.3] }) }] }]}
-                />
-              ))}
-            </View>
-            <Text style={styles.loadingText}>Searching the web and generating AI overview...</Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.summaryCard}>
-              <LinearGradient
-                colors={["rgba(162,210,255,0.22)", "transparent"]}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              />
-              <View style={styles.summaryHeader}>
-                <View style={styles.aiIconWrap}>
-                  <MaterialCommunityIcons name="creation" size={18} color={Colors.light.tint} />
-                </View>
-                <Text style={styles.summaryTitle}>AI Overview</Text>
-                <TouchableOpacity onPress={handleSpeak}>
-                  <Ionicons name={isSpeaking ? "pause-circle" : "play-circle-outline"} size={24} color={Colors.light.tint} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.summaryText}>{aiSummary}</Text>
-
-              {sources.length > 0 && (
-                <View style={styles.sourcesSection}>
-                  <Text style={styles.sourcesLabel}>Sources</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {sources.slice(0, 5).map((src, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={styles.sourceChip}
-                        onPress={() => router.push({ pathname: "/browser", params: { url: src.url } })}
-                      >
-                        <View style={styles.sourceNum}><Text style={styles.sourceNumText}>{idx + 1}</Text></View>
-                        <Image source={{ uri: getFavicon(src.url) }} style={styles.sourceFav} />
-                        <Text style={styles.sourceDomain} numberOfLines={1}>{getDomain(src.url)}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
+      {showModelMenu && (
+        <View style={styles.modelMenu}>
+          {["standard", "advanced", "creative"].map((model) => (
+            <TouchableOpacity
+              key={model}
+              style={[styles.modelOption, selectedModel === model && styles.modelOptionActive]}
+              onPress={() => {
+                setSelectedModel(model);
+                setShowModelMenu(false);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={[styles.modelOptionText, selectedModel === model && styles.modelOptionTextActive]}>
+                {model.charAt(0).toUpperCase() + model.slice(1)}
+              </Text>
+              {selectedModel === model && (
+                <Ionicons name="checkmark" size={16} color={Colors.light.tint} />
               )}
-            </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
-            {relatedQuestions.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Related questions</Text>
-                {relatedQuestions.map((q, idx) => (
-                  <TouchableOpacity key={idx} style={styles.relatedRow} onPress={() => handleRelated(q)}>
-                    <Ionicons name="help-circle-outline" size={18} color={Colors.light.tint} />
-                    <Text style={styles.relatedText}>{q}</Text>
-                    <Ionicons name="chevron-forward" size={14} color={Colors.light.textMuted} />
-                  </TouchableOpacity>
-                ))}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={m => m.id}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 20 }]}
+          showsVerticalScrollIndicator={false}
+          renderItem={renderMessage}
+          ListFooterComponent={
+            isLoading ? (
+              <View style={styles.loadingDots}>
+                <View style={styles.aiBubble}>
+                  <ActivityIndicator size="small" color={Colors.light.tint} />
+                  <Text style={styles.aiText}>Thinking...</Text>
+                </View>
               </View>
+            ) : null
+          }
+        />
+
+        <View style={[styles.inputBar, { paddingBottom: botPad + 8 }]}>
+          <View style={styles.inputWrap}>
+            <TouchableOpacity style={styles.attachBtn} activeOpacity={0.7}>
+              <Ionicons name="add-circle-outline" size={22} color={Colors.light.tint} />
+            </TouchableOpacity>
+
+            <TextInput
+              ref={inputRef}
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={() => sendMessage()}
+              placeholder="Ask anything..."
+              placeholderTextColor={Colors.light.textMuted}
+              returnKeyType="send"
+              multiline
+              maxLength={500}
+            />
+
+            {!hasText && !isListening && (
+              <TouchableOpacity
+                style={styles.voiceBtn}
+                onPress={startListening}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="mic-outline" size={20} color={Colors.light.tint} />
+              </TouchableOpacity>
             )}
 
-            {sources.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Top results</Text>
-                {sources.slice(0, 8).map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.resultRow}
-                    onPress={() => router.push({ pathname: "/browser", params: { url: item.url } })}
-                  >
-                    <View style={styles.resultLeft}>
-                      <Image source={{ uri: getFavicon(item.url) }} style={styles.resultFav} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.resultDomain}>{getDomain(item.url)}</Text>
-                        <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
-                        {item.description ? (
-                          <Text style={styles.resultDesc} numberOfLines={2}>{item.description}</Text>
-                        ) : null}
-                      </View>
-                    </View>
-                    <TouchableOpacity onPress={() => isSaved(item.url) ? null : saveItem(item)}>
-                      <Ionicons
-                        name={isSaved(item.url) ? "bookmark" : "bookmark-outline"}
-                        size={18}
-                        color={isSaved(item.url) ? Colors.light.tint : Colors.light.textMuted}
-                      />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {isListening && (
+              <TouchableOpacity
+                style={[styles.voiceBtn, styles.voiceBtnActive]}
+                onPress={stopListening}
+              >
+                <Ionicons name="mic" size={20} color="#FFF" />
+              </TouchableOpacity>
             )}
-          </>
-        )}
-      </ScrollView>
+
+            {hasText && !isListening && (
+              <TouchableOpacity
+                style={styles.sendBtn}
+                onPress={() => sendMessage()}
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <LinearGradient colors={["#1E6FD9", "#0EA5E9"]} style={styles.sendGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name="send" size={18} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -292,193 +323,151 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.accentLight,
     alignItems: "center", justifyContent: "center",
   },
-  headerBadge: {
-    flex: 1,
+  headerTitle: { flex: 1, fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.light.text },
+  modelBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(162,210,255,0.25)",
-    borderRadius: 14,
-    paddingVertical: 7,
+    backgroundColor: Colors.light.accentLight,
+    borderRadius: 16,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "rgba(162,210,255,0.5)",
-  },
-  headerBadgeText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: Colors.light.tint,
-  },
-  speakBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.light.accentLight,
-    alignItems: "center", justifyContent: "center",
-  },
-
-  content: { paddingHorizontal: 16, paddingTop: 4 },
-  queryText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 22,
-    color: Colors.light.text,
-    marginBottom: 20,
-    lineHeight: 30,
-  },
-
-  loadingCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 32,
-    alignItems: "center",
-    gap: 20,
-    borderWidth: 1,
     borderColor: Colors.light.border,
   },
-  orb: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: "hidden",
-    shadowColor: Colors.light.tint,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  orbInner: { flex: 1 },
-  dotsRow: { flexDirection: "row", gap: 8 },
-  dot: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: Colors.light.tint,
-  },
-  loadingText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
-    color: Colors.light.textSecondary,
-    textAlign: "center",
+  modelBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: Colors.light.tint,
+    textTransform: "capitalize",
   },
 
-  summaryCard: {
+  modelMenu: {
     backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: "rgba(162,210,255,0.5)",
+    marginHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
     overflow: "hidden",
-    shadowColor: Colors.light.tint,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  summaryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 14,
-  },
-  aiIconWrap: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "rgba(162,210,255,0.3)",
-    alignItems: "center", justifyContent: "center",
-  },
-  summaryTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: Colors.light.text,
-    flex: 1,
-  },
-  summaryText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
-    color: Colors.light.text,
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  sourcesSection: { marginTop: 4 },
-  sourcesLabel: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
     marginBottom: 8,
   },
-  sourceChip: {
+  modelOption: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: Colors.light.filterInactive,
-    borderRadius: 12,
-    padding: 10,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    minWidth: 110,
-    maxWidth: 150,
-  },
-  sourceNum: {
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: Colors.light.tint,
-    alignItems: "center", justifyContent: "center",
-  },
-  sourceNumText: { fontFamily: "Inter_700Bold", fontSize: 11, color: "#FFF" },
-  sourceFav: { width: 16, height: 16, borderRadius: 3 },
-  sourceDomain: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.light.text, flex: 1 },
-
-  section: { marginBottom: 16 },
-  sectionTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: Colors.light.text,
-    marginBottom: 10,
-  },
-
-  relatedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 13,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
+    justifyContent: "space-between",
   },
-  relatedText: {
+  modelOptionActive: {
+    backgroundColor: "rgba(162,210,255,0.1)",
+    borderBottomColor: Colors.light.tint,
+  },
+  modelOptionText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.light.text,
+  },
+  modelOptionTextActive: {
+    color: Colors.light.tint,
+  },
+
+  listContent: { paddingHorizontal: 16, paddingTop: 8 },
+
+  bubble: {
+    maxWidth: "80%",
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 10,
+  },
+  userBubble: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.light.tint,
+    borderBottomRightRadius: 6,
+  },
+  userText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: "#FFF",
+    lineHeight: 22,
+  },
+  assistantRow: { alignSelf: "flex-start", maxWidth: "90%", marginBottom: 10 },
+  aiBubble: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    borderTopLeftRadius: 6,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  aiText: {
     fontFamily: "Inter_400Regular",
     fontSize: 15,
     color: Colors.light.text,
-    flex: 1,
+    lineHeight: 23,
   },
 
-  resultRow: {
+  loadingDots: { paddingHorizontal: 16, marginBottom: 10 },
+
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    gap: 10,
     backgroundColor: "#FFF",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  inputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: Colors.light.filterInactive,
+    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: Colors.light.border,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
+    minHeight: 46,
+    maxHeight: 120,
+    gap: 6,
   },
-  resultLeft: { flex: 1, flexDirection: "row", gap: 10, alignItems: "flex-start" },
-  resultFav: { width: 22, height: 22, borderRadius: 4, marginTop: 2 },
-  resultDomain: {
+  attachBtn: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  input: {
+    flex: 1,
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: Colors.light.textSecondary,
-    marginBottom: 3,
-  },
-  resultTitle: {
-    fontFamily: "Inter_600SemiBold",
     fontSize: 15,
-    color: "#1A73E8",
-    lineHeight: 21,
-    marginBottom: 4,
+    color: Colors.light.text,
+    maxHeight: 100,
+    lineHeight: 22,
   },
-  resultDesc: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: Colors.light.textSecondary,
-    lineHeight: 18,
+  voiceBtn: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  voiceBtnActive: {
+    backgroundColor: "#EF4444",
+    borderRadius: 14,
+  },
+  sendBtn: { borderRadius: 14, overflow: "hidden" },
+  sendGrad: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 });
