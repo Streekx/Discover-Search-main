@@ -15,22 +15,13 @@ const { width } = Dimensions.get("window");
 const BASE_URL = process.env.EXPO_PUBLIC_CRAWLER_URL || "https://streekxkk-streekx.hf.space";
 
 const CATEGORIES = [
-  { key: "all", label: "For You", icon: "star-outline" },
+  { key: "all", label: "All", icon: "star-outline" },
+  { key: "images", label: "Images", icon: "image-outline" },
+  { key: "videos", label: "Videos", icon: "play-circle-outline" },
+  { key: "shopping", label: "Shopping", icon: "bag-outline" },
   { key: "news", label: "News", icon: "newspaper-outline" },
-  { key: "tech", label: "Tech", icon: "hardware-chip-outline" },
-  { key: "sports", label: "Sports", icon: "football-outline" },
-  { key: "entertainment", label: "Entertainment", icon: "film-outline" },
-  { key: "science", label: "Science", icon: "planet-outline" },
+  { key: "maps", label: "Maps", icon: "map-outline" },
 ];
-
-const DISCOVER_QUERIES: Record<string, string> = {
-  all: "trending today 2025",
-  news: "breaking news today 2025",
-  tech: "latest technology 2025",
-  sports: "sports news today",
-  entertainment: "bollywood entertainment news",
-  science: "science discovery 2025",
-};
 
 function getDomain(url: string): string {
   try { return new URL(url).hostname.replace("www.", ""); } catch { return ""; }
@@ -52,10 +43,13 @@ function timeAgo(ts?: number): string {
 
 function DiscoverCard({ item, onPress }: { item: SearchResult; onPress: () => void }) {
   const haMedia = item.media && item.media.startsWith("http");
+  const [imageFailed, setImageFailed] = React.useState(false);
+  const [faviconFailed, setFaviconFailed] = React.useState(false);
+  
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.88}>
-      {haMedia ? (
-        <Image source={{ uri: item.media }} style={styles.cardImage} resizeMode="cover" />
+      {haMedia && !imageFailed ? (
+        <Image source={{ uri: item.media }} style={styles.cardImage} resizeMode="cover" onError={() => setImageFailed(true)} />
       ) : (
         <LinearGradient
           colors={["rgba(162,210,255,0.4)", "rgba(30,111,217,0.15)"]}
@@ -66,7 +60,11 @@ function DiscoverCard({ item, onPress }: { item: SearchResult; onPress: () => vo
       )}
       <View style={styles.cardBody}>
         <View style={styles.cardMeta}>
-          <Image source={{ uri: getFavicon(item.url) }} style={styles.cardFav} />
+          {!faviconFailed ? (
+            <Image source={{ uri: getFavicon(item.url) }} style={styles.cardFav} onError={() => setFaviconFailed(true)} />
+          ) : (
+            <Ionicons name="globe-outline" size={14} color={Colors.light.tint} />
+          )}
           <Text style={styles.cardDomain} numberOfLines={1}>{getDomain(item.url)}</Text>
         </View>
         <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
@@ -83,10 +81,13 @@ function DiscoverCard({ item, onPress }: { item: SearchResult; onPress: () => vo
 }
 
 function FeaturedCard({ item, onPress }: { item: SearchResult; onPress: () => void }) {
+  const [imageFailed, setImageFailed] = React.useState(false);
+  const [faviconFailed, setFaviconFailed] = React.useState(false);
+  
   return (
     <TouchableOpacity style={styles.featCard} onPress={onPress} activeOpacity={0.88}>
-      {item.media ? (
-        <Image source={{ uri: item.media }} style={styles.featImage} resizeMode="cover" />
+      {item.media && !imageFailed ? (
+        <Image source={{ uri: item.media }} style={styles.featImage} resizeMode="cover" onError={() => setImageFailed(true)} />
       ) : (
         <LinearGradient
           colors={["#1E6FD9", "#0EA5E9"]}
@@ -101,7 +102,11 @@ function FeaturedCard({ item, onPress }: { item: SearchResult; onPress: () => vo
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
       >
         <View style={styles.featMeta}>
-          <Image source={{ uri: getFavicon(item.url) }} style={styles.featFav} />
+          {!faviconFailed ? (
+            <Image source={{ uri: getFavicon(item.url) }} style={styles.featFav} onError={() => setFaviconFailed(true)} />
+          ) : (
+            <Ionicons name="globe-outline" size={14} color="rgba(255,255,255,0.8)" />
+          )}
           <Text style={styles.featDomain}>{getDomain(item.url)}</Text>
         </View>
         <Text style={styles.featTitle} numberOfLines={2}>{item.title}</Text>
@@ -127,9 +132,12 @@ export default function DiscoverScreen() {
   async function fetchDiscover(cat: string) {
     setLoading(true);
     try {
-      const url = cat === "all" 
-        ? "https://discover-main-crawler-streekx.onrender.com/discover"
-        : `${BASE_URL}/search?q=${encodeURIComponent(DISCOVER_QUERIES[cat] || "trending news")}&filter=news&region=${settings.region}`;
+      let url: string;
+      if (cat === "all") {
+        url = "https://discover-main-crawler-streekx.onrender.com/discover";
+      } else {
+        url = `${BASE_URL}/search?q=trending&type=${cat}&region=${settings.region}`;
+      }
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -152,7 +160,7 @@ export default function DiscoverScreen() {
             title: i.title,
             url: i.url || i.link || "",
             description: (i.description !== "No description." && i.description !== "N/A") ? (i.description || "") : "",
-            media: i.image_url || i.media || i.image || i.thumbnail || undefined,
+            media: i.image_url || i.media || i.image || i.thumbnail || i.icon || undefined,
             source: i.source || "",
             published: i.published || i.date || undefined,
             category: i.category || cat,
