@@ -127,19 +127,24 @@ export default function DiscoverScreen() {
   async function fetchDiscover(cat: string) {
     setLoading(true);
     try {
-      const q = DISCOVER_QUERIES[cat] || "trending news 2025";
+      const url = cat === "all" 
+        ? "https://discover-main-crawler-streekx.onrender.com/discover"
+        : `${BASE_URL}/search?q=${encodeURIComponent(DISCOVER_QUERIES[cat] || "trending news")}&filter=news&region=${settings.region}`;
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
-      const res = await fetch(
-        `${BASE_URL}/search?q=${encodeURIComponent(q)}&filter=news&region=${settings.region}`,
-        { signal: controller.signal, headers: { Accept: "application/json" } }
-      );
+      const res = await fetch(url, { 
+        signal: controller.signal, 
+        headers: { Accept: "application/json" } 
+      });
       clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         let raw: any[] = [];
         if (Array.isArray(data)) raw = data;
         else if (data.results) raw = data.results;
+        else if (data.data) raw = data.data;
+
         const mapped: SearchResult[] = raw
           .filter((i: any) => i.title && i.url)
           .map((i: any, idx: number) => ({
@@ -147,10 +152,10 @@ export default function DiscoverScreen() {
             title: i.title,
             url: i.url || i.link || "",
             description: (i.description !== "No description." && i.description !== "N/A") ? (i.description || "") : "",
-            media: i.media || i.image || i.thumbnail || undefined,
+            media: i.image_url || i.media || i.image || i.thumbnail || undefined,
             source: i.source || "",
             published: i.published || i.date || undefined,
-            category: cat,
+            category: i.category || cat,
           }));
         setItems(mapped);
         Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();

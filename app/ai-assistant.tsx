@@ -17,7 +17,7 @@ import Colors from "@/constants/colors";
 import { useSearch } from "@/context/SearchContext";
 
 const { width, height } = Dimensions.get("window");
-const BASE_URL = process.env.EXPO_PUBLIC_CRAWLER_URL || "https://streekxkk-streekx.hf.space";
+const BASE_URL = "https://discover-main-crawler-streekx.onrender.com";
 
 interface Particle {
   id: string;

@@ -18,7 +18,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSearch } from "@/context/SearchContext";
 
 const { width } = Dimensions.get("window");
-const BASE_URL = process.env.EXPO_PUBLIC_CRAWLER_URL || "https://streekxkk-streekx.hf.space";
+const BASE_URL = "https://discover-main-crawler-streekx.onrender.com";
 
 import { Dimensions } from "react-native";
 

@@ -15,7 +15,7 @@ import {
 import Colors from "@/constants/colors";
 import { useSearch } from "@/context/SearchContext";
 
-const BASE_URL = process.env.EXPO_PUBLIC_CRAWLER_URL || "https://streekxkk-streekx.hf.space";
+const BASE_URL = "https://discover-main-crawler-streekx.onrender.com";
 
 function VoiceWaveOrb({ isActive }: { isActive: boolean }) {
   const wave1 = useRef(new Animated.Value(0)).current;

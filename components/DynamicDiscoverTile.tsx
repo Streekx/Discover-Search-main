@@ -67,8 +67,7 @@ export default function DynamicDiscoverTile() {
 
   async function fetchTrendingItems() {
     try {
-      const BASE_URL = process.env.EXPO_PUBLIC_CRAWLER_URL || "https://streekxkk-streekx.hf.space";
-      const res = await fetch(`${BASE_URL}/search?q=trending+today&filter=news`, {
+      const res = await fetch("https://discover-main-crawler-streekx.onrender.com/discover", {
         signal: AbortSignal.timeout(8000),
       });
 
@@ -79,7 +78,7 @@ export default function DynamicDiscoverTile() {
         if (results.length > 0) {
           const trendingItems: DiscoverItem[] = results.slice(0, 5).map((item: any, idx: number) => ({
             id: item.url || `trending-${idx}`,
-            image: item.image || SAMPLE_DISCOVER_ITEMS[idx % SAMPLE_DISCOVER_ITEMS.length].image,
+            image: item.image_url || item.image || SAMPLE_DISCOVER_ITEMS[idx % SAMPLE_DISCOVER_ITEMS.length].image,
           }));
 
           setItems(trendingItems);
