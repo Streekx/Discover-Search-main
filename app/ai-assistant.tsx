@@ -132,16 +132,23 @@ const orbStyles = StyleSheet.create({
 
 export default function AIAssistantScreen() {
   const insets = useSafeAreaInsets();
-  const { settings } = useSearch();
+  const { settings, createChatThread, addChatMessage, setCurrentChatThreadId, getCurrentChatThread } = useSearch();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastResponse, setLastResponse] = useState<string>("");
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [threadId, setThreadId] = useState<string | null>(null);
   const panResponder = useRef<any>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  useEffect(() => {
+    const id = createChatThread("New Chat");
+    setThreadId(id);
+    setCurrentChatThreadId(id);
+  }, []);
 
   useSpeechRecognitionEvent("result", (event) => {
     const t = event.results[0]?.transcript || "";
@@ -171,6 +178,10 @@ export default function AIAssistantScreen() {
   const processQuery = useCallback(async (query: string) => {
     setIsLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (threadId) {
+      addChatMessage(threadId, { id: `msg-${Date.now()}`, type: "user", text: query, timestamp: Date.now() });
+    }
 
     try {
       const controller = new AbortController();
@@ -202,6 +213,9 @@ export default function AIAssistantScreen() {
       }
 
       setLastResponse(answer);
+      if (threadId) {
+        addChatMessage(threadId, { id: `msg-${Date.now()}`, type: "assistant", text: answer, timestamp: Date.now() });
+      }
 
       if (settings.voiceLanguage) {
         setIsSpeaking(true);
@@ -216,6 +230,9 @@ export default function AIAssistantScreen() {
     } catch (err: any) {
       const errMsg = "Sorry, I couldn't connect. Please check your internet connection.";
       setLastResponse(errMsg);
+      if (threadId) {
+        addChatMessage(threadId, { id: `msg-${Date.now()}`, type: "assistant", text: errMsg, timestamp: Date.now() });
+      }
       if (settings.voiceLanguage) {
         setIsSpeaking(true);
         Speech.speak(errMsg, {
@@ -228,7 +245,7 @@ export default function AIAssistantScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [settings.voiceLanguage]);
+  }, [settings.voiceLanguage, threadId, addChatMessage]);
 
   const scatterParticles = useCallback((x: number, y: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

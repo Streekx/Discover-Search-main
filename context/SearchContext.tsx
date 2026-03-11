@@ -25,6 +25,21 @@ export interface HistoryItem {
   filter: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  type: "user" | "assistant";
+  text: string;
+  timestamp: number;
+}
+
+export interface ChatThread {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type SearchFilter = "all" | "images" | "videos" | "news" | "shopping" | "books" | "maps" | "ai";
 
 export interface SearchSettings {
@@ -60,6 +75,12 @@ interface SearchContextValue {
   relatedSearches: string[];
   suggestions: string[];
   fetchSuggestions: (q: string) => Promise<void>;
+  chatThreads: ChatThread[];
+  createChatThread: (title: string) => string;
+  addChatMessage: (threadId: string, message: ChatMessage) => void;
+  deleteChatThread: (threadId: string) => void;
+  getCurrentChatThread: () => ChatThread | null;
+  setCurrentChatThreadId: (id: string | null) => void;
 }
 
 const defaultSettings: SearchSettings = {
@@ -114,21 +135,66 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [relatedSearches, setRelatedSearches] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [chatThreads, setChatThreads] = useState<ChatThread[]>([]);
+  const [currentChatThreadId, setCurrentChatThreadId] = useState<string | null>(null);
 
   useEffect(() => { loadPersisted(); }, []);
 
   async function loadPersisted() {
     try {
-      const [h, s, st] = await Promise.all([
+      const [h, s, st, ct] = await Promise.all([
         AsyncStorage.getItem("streekx_history"),
         AsyncStorage.getItem("streekx_saved"),
         AsyncStorage.getItem("streekx_settings"),
+        AsyncStorage.getItem("streekx_chatthreads"),
       ]);
       if (h) setHistory(JSON.parse(h));
       if (s) setSavedItems(JSON.parse(s));
       if (st) setSettings({ ...defaultSettings, ...JSON.parse(st) });
+      if (ct) setChatThreads(JSON.parse(ct));
     } catch (_) {}
   }
+
+  const createChatThread = useCallback((title: string) => {
+    const id = `thread-${Date.now()}`;
+    const newThread: ChatThread = {
+      id,
+      title,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setChatThreads(prev => {
+      const next = [newThread, ...prev];
+      AsyncStorage.setItem("streekx_chatthreads", JSON.stringify(next));
+      return next;
+    });
+    return id;
+  }, []);
+
+  const addChatMessage = useCallback((threadId: string, message: ChatMessage) => {
+    setChatThreads(prev => {
+      const next = prev.map(t => 
+        t.id === threadId 
+          ? { ...t, messages: [...t.messages, message], updatedAt: Date.now() }
+          : t
+      );
+      AsyncStorage.setItem("streekx_chatthreads", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const deleteChatThread = useCallback((threadId: string) => {
+    setChatThreads(prev => {
+      const next = prev.filter(t => t.id !== threadId);
+      AsyncStorage.setItem("streekx_chatthreads", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const getCurrentChatThread = useCallback(() => {
+    return chatThreads.find(t => t.id === currentChatThreadId) || null;
+  }, [chatThreads, currentChatThreadId]);
 
   const addToHistory = useCallback(async (q: string, filter: SearchFilter) => {
     if (settings.incognitoMode) return;
@@ -299,12 +365,14 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     aiOverview, aiLoading,
     relatedSearches,
     suggestions, fetchSuggestions,
+    chatThreads, createChatThread, addChatMessage, deleteChatThread, getCurrentChatThread, setCurrentChatThreadId,
   }), [
     query, activeFilter, results, isLoading, error,
     search, history, clearHistory, removeHistoryItem,
     savedItems, saveItem, unsaveItem, isSaved,
     settings, updateSettings, aiOverview, aiLoading, relatedSearches,
     suggestions, fetchSuggestions,
+    chatThreads, createChatThread, addChatMessage, deleteChatThread, getCurrentChatThread,
   ]);
 
   return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
