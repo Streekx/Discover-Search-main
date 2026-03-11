@@ -68,6 +68,7 @@ export default function SearchScreen() {
   const [voiceModal, setVoiceModal] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [aiExpanded, setAiExpanded] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<{ item: SearchResult; src: string } | null>(null);
   const listRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const micPulse = useRef(new Animated.Value(1)).current;
@@ -246,10 +247,20 @@ export default function SearchScreen() {
     const src = item.media || item.url;
     const imageSource = isValidImageUrl(src) ? { uri: src } : PLACEHOLDER_IMAGE;
     const faviconSource = isValidImageUrl(getFavicon(item.url)) ? { uri: getFavicon(item.url) } : PLACEHOLDER_IMAGE;
+    const [err, setErr] = useState(false);
     
     return (
-      <TouchableOpacity style={styles.imageCard} onPress={() => openLink(item.url)} activeOpacity={0.82}>
-        <Image source={imageSource} style={styles.imageThumb} resizeMode="cover" onError={() => null} />
+      <TouchableOpacity
+        style={styles.imageCard}
+        onPress={() => setSelectedImage({ item, src: isValidImageUrl(src) ? src! : "" })}
+        activeOpacity={0.82}
+      >
+        <Image
+          source={!err && isValidImageUrl(src) ? { uri: src } : PLACEHOLDER_IMAGE}
+          style={styles.imageThumb}
+          resizeMode="cover"
+          onError={() => setErr(true)}
+        />
         <View style={styles.imageFooter}>
           <Image source={faviconSource} style={styles.imageFav} onError={() => null} />
           <Text style={styles.imageDomain} numberOfLines={1}>{getDomain(item.url)}</Text>
@@ -300,11 +311,12 @@ export default function SearchScreen() {
   }
 
   function ListHeader() {
+    const isFilteredView = activeFilter !== "all";
     return (
       <>
-        <AiOverviewCard />
-        <RelatedSearches />
-        {results.length > 0 && (
+        {!isFilteredView && <AiOverviewCard />}
+        {!isFilteredView && <RelatedSearches />}
+        {results.length > 0 && !isFilteredView && (
           <Text style={styles.resultCount}>About {results.length}+ results</Text>
         )}
       </>
@@ -472,6 +484,71 @@ export default function SearchScreen() {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* Image Detail Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.imgModalOverlay}>
+          <TouchableOpacity style={styles.imgModalClose} onPress={() => setSelectedImage(null)}>
+            <Ionicons name="close" size={26} color="#FFF" />
+          </TouchableOpacity>
+          {selectedImage && (
+            <View style={styles.imgModalContent}>
+              <Image
+                source={isValidImageUrl(selectedImage.src) ? { uri: selectedImage.src } : PLACEHOLDER_IMAGE}
+                style={styles.imgModalFull}
+                resizeMode="contain"
+              />
+              <View style={styles.imgModalInfo}>
+                <Image
+                  source={{ uri: getFavicon(selectedImage.item.url) }}
+                  style={styles.imgModalFav}
+                  onError={() => null}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.imgModalTitle} numberOfLines={2}>{selectedImage.item.title}</Text>
+                  <Text style={styles.imgModalDomain}>{getDomain(selectedImage.item.url)}</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.imgVisitBtn}
+                onPress={() => { openLink(selectedImage.item.url); setSelectedImage(null); }}
+              >
+                <Ionicons name="open-outline" size={16} color="#FFF" />
+                <Text style={styles.imgVisitText}>Visit Page</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {results.filter(r => r.id !== selectedImage?.item.id && isValidImageUrl(r.media)).length > 0 && (
+            <View style={styles.relatedImgsWrap}>
+              <Text style={styles.relatedImgsTitle}>Related Images</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {results
+                  .filter(r => r.id !== selectedImage?.item.id && isValidImageUrl(r.media))
+                  .slice(0, 8)
+                  .map(r => (
+                    <TouchableOpacity
+                      key={r.id}
+                      onPress={() => setSelectedImage({ item: r, src: r.media! })}
+                    >
+                      <Image
+                        source={{ uri: r.media }}
+                        style={styles.relatedImg}
+                        resizeMode="cover"
+                        onError={() => null}
+                      />
+                    </TouchableOpacity>
+                  ))
+                }
+              </ScrollView>
+            </View>
+          )}
         </View>
       </Modal>
     </View>
@@ -912,5 +989,82 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 15,
     color: "#EF4444",
+  },
+
+  imgModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.93)",
+    justifyContent: "center",
+  },
+  imgModalClose: {
+    position: "absolute",
+    top: 52, right: 18,
+    zIndex: 10,
+    padding: 8,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 20,
+  },
+  imgModalContent: {
+    paddingHorizontal: 12,
+    paddingTop: 60,
+  },
+  imgModalFull: {
+    width: "100%",
+    height: 300,
+    borderRadius: 14,
+    marginBottom: 14,
+  },
+  imgModalInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  imgModalFav: { width: 22, height: 22, borderRadius: 4 },
+  imgModalTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#FFF",
+    lineHeight: 20,
+  },
+  imgModalDomain: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 2,
+  },
+  imgVisitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 24,
+    paddingVertical: 12,
+    marginHorizontal: 4,
+    marginBottom: 20,
+  },
+  imgVisitText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: "#FFF",
+  },
+  relatedImgsWrap: {
+    paddingHorizontal: 14,
+    paddingBottom: 32,
+  },
+  relatedImgsTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  relatedImg: {
+    width: 90,
+    height: 90,
+    borderRadius: 10,
   },
 });

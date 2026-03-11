@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  View, StyleSheet, TouchableOpacity, Image
+  View, StyleSheet, TouchableOpacity, Image, Animated
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -9,214 +9,132 @@ import Colors from "@/constants/colors";
 
 const PLACEHOLDER_IMAGE = require("@/assets/images/icon.png");
 
-const isValidImageUrl = (url: string | null | undefined): boolean => {
-  if (!url || typeof url !== "string") return false;
-  try {
-    new URL(url);
-    return url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i) !== null || url.includes("http");
-  } catch {
-    return false;
-  }
-};
-
-interface DiscoverItem {
-  id: string;
-  image: string;
-}
-
-const SAMPLE_DISCOVER_ITEMS: DiscoverItem[] = [
-  {
-    id: "1",
-    image: "https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
-  },
-  {
-    id: "2",
-    image: "https://images.pexels.com/photos/87651/earth-blue-planet-globe-planet-87651.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
-  },
-  {
-    id: "3",
-    image: "https://images.pexels.com/photos/3938022/pexels-photo-3938022.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
-  },
-  {
-    id: "4",
-    image: "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
-  },
-  {
-    id: "5",
-    image: "https://images.pexels.com/photos/3951969/pexels-photo-3951969.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
-  }
+const FALLBACK_IMAGES = [
+  "https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
+  "https://images.pexels.com/photos/87651/earth-blue-planet-globe-planet-87651.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
+  "https://images.pexels.com/photos/3938022/pexels-photo-3938022.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
+  "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
+  "https://images.pexels.com/photos/3951969/pexels-photo-3951969.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1",
 ];
+
+function isValidUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== "string") return false;
+  try { new URL(url); return url.startsWith("http"); } catch { return false; }
+}
 
 const TILE_SIZE = 52;
 
 export default function DynamicDiscoverTile() {
+  const [images, setImages] = useState<string[]>(FALLBACK_IMAGES);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [items, setItems] = useState<DiscoverItem[]>(SAMPLE_DISCOVER_ITEMS);
-  const [hasImage, setHasImage] = useState(true);
+  const [imgErr, setImgErr] = useState(false);
+  const [backImgErr, setBackImgErr] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
-
-  const currentItem = items[currentIndex];
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    fetchTrendingItems();
+    fetchRealImages();
   }, []);
 
   useEffect(() => {
-    if (items.length === 0) {
-      setHasImage(false);
-      return;
-    }
-
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 6000);
+      Animated.sequence([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+      setCurrentIndex(prev => (prev + 1) % images.length);
+      setImgErr(false);
+      setBackImgErr(false);
+    }, 5000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [images.length]);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [items.length]);
-
-  async function fetchTrendingItems() {
+  async function fetchRealImages() {
     try {
       const res = await fetch("https://discover-main-crawler-streekx.onrender.com/discover", {
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(10000),
       });
-
       if (res.ok) {
         const data = await res.json();
-        const results = Array.isArray(data) ? data : data.results || [];
-
-        if (results.length > 0) {
-          const trendingItems: DiscoverItem[] = results.slice(0, 5).map((item: any, idx: number) => ({
-            id: item.url || `trending-${idx}`,
-            image: item.image_url || item.image || SAMPLE_DISCOVER_ITEMS[idx % SAMPLE_DISCOVER_ITEMS.length].image,
-          }));
-
-          setItems(trendingItems);
-          setHasImage(true);
-        } else {
-          setItems([]);
-          setHasImage(false);
+        const raw: any[] = Array.isArray(data) ? data : (data.results || data.data || []);
+        const urls = raw
+          .map((i: any) => i.image_url || i.image || i.thumbnail || i.media)
+          .filter(isValidUrl)
+          .slice(0, 8);
+        if (urls.length >= 2) {
+          setImages(urls);
+          setImgErr(false);
+          setBackImgErr(false);
         }
       }
     } catch {
-      setItems(SAMPLE_DISCOVER_ITEMS);
-      setHasImage(true);
+      // keep fallback images
     }
   }
 
-  function handleTileTap() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/discover");
-  }
+  const frontImg = images[currentIndex];
+  const backImg = images[(currentIndex + 1) % images.length];
 
-  if (!hasImage || items.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <LinearGradient
-          colors={["rgba(162,210,255,0.2)", "rgba(30,111,217,0.1)"]}
-          style={styles.emptyTile}
-        />
-      </View>
-    );
-  }
-
-  const backItem = items[(currentIndex + 1) % items.length];
-
-  const backImageSource = isValidImageUrl(backItem.image)
-    ? { uri: backItem.image }
-    : PLACEHOLDER_IMAGE;
-  
-  const frontImageSource = isValidImageUrl(currentItem.image)
-    ? { uri: currentItem.image }
-    : PLACEHOLDER_IMAGE;
+  const frontSource = !imgErr && isValidUrl(frontImg) ? { uri: frontImg } : PLACEHOLDER_IMAGE;
+  const backSource = !backImgErr && isValidUrl(backImg) ? { uri: backImg } : PLACEHOLDER_IMAGE;
 
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={handleTileTap}
+      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/discover"); }}
       activeOpacity={0.85}
     >
-      {/* Back angled layered square with different image */}
       <View style={[styles.layeredSquare, styles.backLayer]}>
         <Image
-          source={backImageSource}
-          style={styles.backgroundImage}
+          source={backSource}
+          style={styles.img}
           resizeMode="cover"
-          onError={() => setHasImage(false)}
+          onError={() => setBackImgErr(true)}
         />
       </View>
 
-      {/* Front main tile with image */}
-      <View style={[styles.layeredSquare, styles.frontLayer]}>
+      <Animated.View style={[styles.layeredSquare, styles.frontLayer, { opacity: fadeAnim }]}>
         <Image
-          source={frontImageSource}
-          style={styles.backgroundImage}
+          source={frontSource}
+          style={styles.img}
           resizeMode="cover"
-          onError={() => setHasImage(false)}
+          onError={() => setImgErr(true)}
         />
-
-        {/* Subtle gradient overlay */}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.2)"]}
-          style={styles.bottomGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+          colors={["transparent", "rgba(0,0,0,0.22)"]}
+          style={styles.overlay}
+          start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         />
-      </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: TILE_SIZE,
-    height: TILE_SIZE,
+    width: TILE_SIZE, height: TILE_SIZE,
     position: "relative",
   },
-  emptyContainer: {
-    width: TILE_SIZE,
-    height: TILE_SIZE,
-  },
-  emptyTile: {
-    flex: 1,
-    borderRadius: 16,
-  },
   layeredSquare: {
-    width: TILE_SIZE,
-    height: TILE_SIZE,
-    borderRadius: 16,
-    overflow: "hidden",
+    width: TILE_SIZE, height: TILE_SIZE,
+    borderRadius: 16, overflow: "hidden",
+    position: "absolute",
   },
   backLayer: {
-    position: "absolute",
-    bottom: -4,
-    right: -4,
+    bottom: -4, right: -4,
     backgroundColor: "rgba(162,210,255,0.25)",
-    borderWidth: 1,
-    borderColor: "rgba(162,210,255,0.15)",
+    borderWidth: 1, borderColor: "rgba(162,210,255,0.15)",
     transform: [{ rotate: "4deg" }],
   },
   frontLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
+    top: 0, left: 0,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3,
   },
-  backgroundImage: {
-    width: "100%",
-    height: "100%",
-  },
-  bottomGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "40%",
+  img: { width: "100%", height: "100%" },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 });
