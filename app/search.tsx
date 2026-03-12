@@ -463,10 +463,6 @@ export default function SearchScreen() {
       <View style={{ height: topPad, backgroundColor: "#fff" }} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.back()}>
-          <Ionicons name="exit-outline" size={20} color="#fff" />
-        </TouchableOpacity>
-
         <Text style={styles.headerBrand}>STREEKX</Text>
 
         <View style={styles.headerRight}>
@@ -528,6 +524,10 @@ export default function SearchScreen() {
           </ScrollView>
 
           <View style={styles.searchRow}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={22} color="#333" />
+            </TouchableOpacity>
+
             <View style={styles.searchInputWrap}>
               <TextInput
                 ref={inputRef}
@@ -546,8 +546,15 @@ export default function SearchScreen() {
                   <Ionicons name="close" size={18} color="#5f6368" />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => handleSearch()} style={styles.searchIconBtn}>
-                <Ionicons name="search" size={20} color="#5f6368" />
+              <TouchableOpacity
+                onPress={() => inputValue.length > 0 ? handleSearch() : router.push("/ai-assistant")}
+                style={styles.searchIconBtn}
+              >
+                {inputValue.length > 0 ? (
+                  <Ionicons name="search" size={20} color="#5f6368" />
+                ) : (
+                  <MaterialCommunityIcons name="robot-excited-outline" size={20} color="#A2D2FF" />
+                )}
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={[styles.micBtn, isListening && styles.micBtnActive]} onPress={startVoice}>
@@ -565,7 +572,7 @@ export default function SearchScreen() {
             </TouchableOpacity>
             <Text style={styles.voiceTitle}>{isListening ? "Listening..." : "Voice Search"}</Text>
             <Animated.View style={[styles.micCircle, { transform: [{ scale: micPulse }] }]}>
-              <LinearGradient colors={["#5bb96b", "#3d9e50"]} style={styles.micCircleInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <LinearGradient colors={["#A2D2FF", "#6ABAFF"]} style={styles.micCircleInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Ionicons name="mic" size={42} color="#FFF" />
               </LinearGradient>
             </Animated.View>
@@ -668,14 +675,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 0,
   },
-  headerBackBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#5bb96b",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headerBrand: {
     flex: 1,
     textAlign: "center",
@@ -711,8 +710,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  loadStrip: { height: 2, backgroundColor: "#e8f5e9", overflow: "hidden" },
-  loadStripInner: { flex: 1, backgroundColor: "#5bb96b" },
+  loadStrip: { height: 2, backgroundColor: "#e8f0ff", overflow: "hidden" },
+  loadStripInner: { flex: 1, backgroundColor: "#A2D2FF" },
 
   listPad: { paddingTop: 0 },
 
@@ -1157,6 +1156,12 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 8,
   },
+  backBtn: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   searchInputWrap: {
     flex: 1,
     flexDirection: "row",
@@ -1242,7 +1247,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#5bb96b",
+    backgroundColor: "#A2D2FF",
     borderRadius: 26,
     paddingVertical: 13,
     paddingHorizontal: 32,
@@ -1312,7 +1317,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#5bb96b",
+    backgroundColor: "#A2D2FF",
     borderRadius: 22,
     paddingVertical: 12,
     marginHorizontal: 4,
