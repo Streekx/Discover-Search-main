@@ -368,7 +368,7 @@ export default function SearchScreen() {
       <View style={{ height: topPad, backgroundColor: Colors.light.backgroundCard }} />
       
       <View style={styles.headerBrand}>
-        <Text style={styles.headerBrandText}>streekx</Text>
+        <Text style={styles.headerBrandText}>STREEKX</Text>
       </View>
 
       {isLoading && (
@@ -553,33 +553,37 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.background },
   loadStrip: { height: 2, backgroundColor: "transparent", overflow: "hidden" },
   loadStripInner: { flex: 1, backgroundColor: Colors.light.tint },
-  listPad: { paddingHorizontal: 12, paddingTop: 12 },
+  listPad: { paddingHorizontal: 0, paddingTop: 12 },
   
   headerBrand: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    paddingTop: 18,
     backgroundColor: Colors.light.background,
+    alignItems: "center",
   },
   headerBrandText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 20,
+    fontFamily: "Inter_800Black",
+    fontSize: 22,
     color: "#1A73E8",
-    letterSpacing: -0.5,
+    letterSpacing: 0.8,
+    fontWeight: "900",
   },
 
   aiCard: {
-    borderRadius: 18,
-    borderWidth: 0.8,
-    borderColor: "#f0f0f0",
+    borderRadius: 20,
+    borderWidth: 0,
+    borderColor: "transparent",
     backgroundColor: "#FFF",
-    padding: 16,
-    marginBottom: 14,
+    padding: 20,
+    marginBottom: 16,
+    marginHorizontal: 12,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 1,
+    shadowRadius: 10,
+    elevation: 2,
   },
   aiCardGradient: { display: "none" },
   aiCardHeader: {
@@ -704,15 +708,15 @@ const styles = StyleSheet.create({
   resultCard: {
     backgroundColor: "#FFF",
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 0.8,
-    borderColor: "#f0f0f0",
+    padding: 20,
+    marginBottom: 16,
+    marginHorizontal: 12,
+    borderWidth: 0,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   cardMeta: {
     flexDirection: "row",
@@ -740,15 +744,15 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 16,
+    fontSize: 17,
     color: "#1A73E8",
-    lineHeight: 22,
-    marginBottom: 6,
+    lineHeight: 24,
+    marginBottom: 8,
   },
   cardDesc: {
     fontFamily: "Inter_400Regular",
     fontSize: 13.5,
-    color: "#666666",
+    color: "#3c4043",
     lineHeight: 20,
   },
   cardMedia: {
