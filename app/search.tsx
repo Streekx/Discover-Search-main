@@ -366,14 +366,14 @@ export default function SearchScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <View style={{ height: topPad, backgroundColor: Colors.light.backgroundCard }} />
+      
+      <View style={styles.headerBrand}>
+        <Text style={styles.headerBrandText}>streekx</Text>
+      </View>
 
       {isLoading && (
         <View style={styles.loadStrip}>
-          <LinearGradient
-            colors={[Colors.light.tint, "#A2D2FF", Colors.light.tint]}
-            style={styles.loadStripInner}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          />
+          <View style={styles.loadStripInner} />
         </View>
       )}
 
@@ -551,25 +551,37 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.background },
-  loadStrip: { height: 3, backgroundColor: Colors.light.filterInactive, overflow: "hidden" },
-  loadStripInner: { flex: 1 },
-  listPad: { paddingHorizontal: 12, paddingTop: 10 },
+  loadStrip: { height: 2, backgroundColor: "transparent", overflow: "hidden" },
+  loadStripInner: { flex: 1, backgroundColor: Colors.light.tint },
+  listPad: { paddingHorizontal: 12, paddingTop: 12 },
+  
+  headerBrand: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.light.background,
+  },
+  headerBrandText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 20,
+    color: "#1A73E8",
+    letterSpacing: -0.5,
+  },
 
   aiCard: {
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: "rgba(162,210,255,0.6)",
-    backgroundColor: "#FAFEFF",
+    borderWidth: 0.8,
+    borderColor: "#f0f0f0",
+    backgroundColor: "#FFF",
     padding: 16,
     marginBottom: 14,
     overflow: "hidden",
-    shadowColor: Colors.light.tint,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
   },
-  aiCardGradient: { ...StyleSheet.absoluteFillObject },
+  aiCardGradient: { display: "none" },
   aiCardHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -691,15 +703,15 @@ const styles = StyleSheet.create({
 
   resultCard: {
     backgroundColor: "#FFF",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 0.8,
+    borderColor: "#f0f0f0",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 1,
   },
   cardMeta: {
@@ -736,7 +748,7 @@ const styles = StyleSheet.create({
   cardDesc: {
     fontFamily: "Inter_400Regular",
     fontSize: 13.5,
-    color: Colors.light.textSecondary,
+    color: "#666666",
     lineHeight: 20,
   },
   cardMedia: {
