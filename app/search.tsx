@@ -14,9 +14,9 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import Colors from "@/constants/colors";
 import { useSearch, SearchFilter, SearchResult } from "@/context/SearchContext";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import GalaxyBackground from "@/components/GalaxyBackground";
 
 const PLACEHOLDER_IMAGE = require("@/assets/images/icon.png");
 
@@ -459,8 +459,9 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
-      <View style={{ height: topPad, backgroundColor: "#fff" }} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <GalaxyBackground />
+      <View style={{ height: topPad, backgroundColor: "transparent" }} />
 
       <View style={styles.header}>
         <Text style={styles.headerBrand}>STREEKX</Text>
@@ -525,7 +526,7 @@ export default function SearchScreen() {
 
           <View style={styles.searchRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={22} color="#333" />
+              <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
 
             <View style={styles.searchInputWrap}>
@@ -536,7 +537,7 @@ export default function SearchScreen() {
                 onChangeText={setInputValue}
                 onSubmitEditing={() => handleSearch()}
                 placeholder="Search StreekX..."
-                placeholderTextColor="#9aa0a6"
+                placeholderTextColor="rgba(255,255,255,0.38)"
                 returnKeyType="search"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -568,7 +569,7 @@ export default function SearchScreen() {
         <View style={styles.voiceOverlay}>
           <View style={[styles.voiceCard, { paddingBottom: botPad + 32 }]}>
             <TouchableOpacity onPress={() => { stopVoice(); setVoiceModal(false); }} style={styles.voiceClose}>
-              <Ionicons name="close" size={24} color="#333" />
+              <Ionicons name="close" size={24} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
             <Text style={styles.voiceTitle}>{isListening ? "Listening..." : "Voice Search"}</Text>
             <Animated.View style={[styles.micCircle, { transform: [{ scale: micPulse }] }]}>
@@ -665,14 +666,14 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#05050A" },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderBottomWidth: 0,
   },
   headerBrand: {
@@ -681,7 +682,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_800Black",
     fontSize: 22,
     fontWeight: "900",
-    color: "#000",
+    color: "#FFFFFF",
     letterSpacing: 1.5,
   },
   headerRight: {
@@ -698,32 +699,32 @@ const styles = StyleSheet.create({
   leafCount: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#222",
+    color: "#FFFFFF",
     fontFamily: "Inter_700Bold",
   },
   profileBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#444",
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  loadStrip: { height: 2, backgroundColor: "#e8f0ff", overflow: "hidden" },
-  loadStripInner: { flex: 1, backgroundColor: "#A2D2FF" },
+  loadStrip: { height: 2, backgroundColor: "rgba(255,255,255,0.08)", overflow: "hidden" },
+  loadStripInner: { flex: 1, backgroundColor: "#6EB4FF" },
 
   listPad: { paddingTop: 0 },
 
   regionRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0e8",
+    backgroundColor: "rgba(255,255,255,0.05)",
     paddingHorizontal: 14,
     paddingVertical: 9,
     gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#d8d8cc",
+    borderBottomColor: "rgba(255,255,255,0.08)",
   },
   regionPill: {
     flexDirection: "row",
@@ -732,35 +733,35 @@ const styles = StyleSheet.create({
   },
   regionText: {
     fontSize: 13,
-    color: "#333",
+    color: "rgba(255,255,255,0.70)",
     fontFamily: "Inter_400Regular",
   },
 
   knowledgeCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.07)",
     paddingHorizontal: 16,
     paddingTop: 18,
     paddingBottom: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "rgba(255,255,255,0.10)",
     marginBottom: 4,
   },
   knowledgeSkeleton: { gap: 10, paddingBottom: 20 },
   skeletonLine: {
     height: 13,
-    backgroundColor: "#eeeeee",
+    backgroundColor: "rgba(255,255,255,0.10)",
     borderRadius: 3,
   },
   knowledgeTitle: {
     fontSize: 22,
     fontWeight: "700",
     fontFamily: "Inter_700Bold",
-    color: "#202124",
+    color: "#FFFFFF",
     marginBottom: 2,
   },
   knowledgeSubtitle: {
     fontSize: 13,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
     marginBottom: 12,
   },
@@ -769,11 +770,11 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginBottom: 14,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   knowledgeDesc: {
     fontSize: 14,
-    color: "#202124",
+    color: "rgba(255,255,255,0.82)",
     fontFamily: "Inter_400Regular",
     lineHeight: 21,
     marginBottom: 14,
@@ -787,7 +788,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "#dadce0",
+    borderColor: "rgba(255,255,255,0.18)",
     borderRadius: 20,
     paddingVertical: 5,
     paddingHorizontal: 10,
@@ -797,19 +798,19 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#000",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
   wikiIconText: {
-    color: "#fff",
+    color: "#000",
     fontSize: 10,
     fontWeight: "700",
     fontFamily: "Inter_700Bold",
   },
   wikiChipText: {
     fontSize: 13,
-    color: "#1558d6",
+    color: "#7DC3FF",
     fontFamily: "Inter_400Regular",
   },
   knowledgeFooter: {
@@ -817,16 +818,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "rgba(255,255,255,0.10)",
   },
   knowledgeSource: {
     fontSize: 12,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.50)",
     fontFamily: "Inter_400Regular",
     flex: 1,
   },
   knowledgeSourceLink: {
-    color: "#1558d6",
+    color: "#7DC3FF",
     textDecorationLine: "underline",
   },
   feedbackBtns: {
@@ -844,18 +845,18 @@ const styles = StyleSheet.create({
   },
   sectionHeaderText: {
     fontSize: 13,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.45)",
     fontFamily: "Inter_400Regular",
   },
 
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "rgba(255,255,255,0.08)",
     marginHorizontal: 16,
   },
 
   resultCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.06)",
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 4,
@@ -869,25 +870,25 @@ const styles = StyleSheet.create({
   cardFav: { width: 18, height: 18, borderRadius: 9 },
   cardSource: {
     fontSize: 13,
-    color: "#202124",
+    color: "rgba(255,255,255,0.72)",
     fontFamily: "Inter_400Regular",
   },
   cardBreadcrumb: {
     fontSize: 12,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.42)",
     fontFamily: "Inter_400Regular",
   },
   moreBtn: { marginLeft: "auto", padding: 4 },
   cardTitle: {
     fontSize: 18,
-    color: "#1558d6",
+    color: "#7DC3FF",
     fontFamily: "Inter_400Regular",
     lineHeight: 24,
     marginBottom: 4,
   },
   cardDesc: {
     fontSize: 13,
-    color: "#202124",
+    color: "rgba(255,255,255,0.72)",
     fontFamily: "Inter_400Regular",
     lineHeight: 19,
     marginBottom: 10,
@@ -905,19 +906,19 @@ const styles = StyleSheet.create({
   cardMediaCaption: {
     flex: 1,
     fontSize: 13,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
     lineHeight: 19,
   },
   priceText: {
     fontSize: 14,
-    color: "#188038",
+    color: "#4CAF50",
     fontFamily: "Inter_600SemiBold",
     marginBottom: 8,
   },
   publishedText: {
     fontSize: 12,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.42)",
     fontFamily: "Inter_400Regular",
     marginBottom: 8,
   },
@@ -927,7 +928,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   videoThumbWrap: {
     width: 130,
@@ -969,20 +970,20 @@ const styles = StyleSheet.create({
   videoInfo: { flex: 1 },
   videoTitle: {
     fontSize: 15,
-    color: "#1558d6",
+    color: "#7DC3FF",
     fontFamily: "Inter_400Regular",
     lineHeight: 21,
     marginBottom: 4,
   },
   videoSource: {
     fontSize: 12,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.45)",
     fontFamily: "Inter_400Regular",
     marginBottom: 2,
   },
   videoDate: {
     fontSize: 12,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.40)",
     fontFamily: "Inter_400Regular",
   },
 
@@ -991,7 +992,7 @@ const styles = StyleSheet.create({
     margin: 3,
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "rgba(255,255,255,0.08)",
     maxWidth: (width - 18) / 2,
   },
   imageThumb: { width: "100%", aspectRatio: 1 },
@@ -1000,27 +1001,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     padding: 6,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(10,8,25,0.88)",
   },
   imageFav: { width: 14, height: 14, borderRadius: 7 },
   imageDomain: {
     fontSize: 11,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
     flex: 1,
   },
 
   relatedCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.05)",
     paddingTop: 14,
     paddingBottom: 0,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "rgba(255,255,255,0.10)",
     marginTop: 8,
   },
   relatedTitle: {
     fontSize: 14,
-    color: "#202124",
+    color: "rgba(255,255,255,0.72)",
     fontFamily: "Inter_400Regular",
     paddingHorizontal: 16,
     marginBottom: 4,
@@ -1031,7 +1032,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "rgba(255,255,255,0.08)",
   },
   relatedText: {
     fontSize: 14,
@@ -1039,11 +1040,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   relatedTextNormal: {
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
   },
   relatedTextBold: {
-    color: "#202124",
+    color: "#FFFFFF",
     fontFamily: "Inter_700Bold",
   },
 
@@ -1056,14 +1057,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#dadce0",
+    borderColor: "rgba(255,255,255,0.22)",
     borderRadius: 22,
     paddingVertical: 10,
     paddingHorizontal: 28,
   },
   nextPageText: {
     fontSize: 15,
-    color: "#333",
+    color: "rgba(255,255,255,0.75)",
     fontFamily: "Inter_400Regular",
   },
 
@@ -1082,24 +1083,24 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_800Black",
     fontSize: 32,
     fontWeight: "900",
-    color: "#000",
+    color: "#FFFFFF",
     letterSpacing: 2,
   },
   emptyTitle: {
     fontSize: 17,
-    color: "#202124",
+    color: "rgba(255,255,255,0.90)",
     fontFamily: "Inter_600SemiBold",
   },
   emptyMsg: {
     fontSize: 14,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     lineHeight: 20,
   },
   retryBtn: {
     borderWidth: 1,
-    borderColor: "#dadce0",
+    borderColor: "rgba(255,255,255,0.22)",
     borderRadius: 22,
     paddingVertical: 10,
     paddingHorizontal: 28,
@@ -1107,14 +1108,19 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontSize: 14,
-    color: "#333",
+    color: "rgba(255,255,255,0.75)",
     fontFamily: "Inter_400Regular",
   },
 
   bottomBar: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(4,3,14,0.94)",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "rgba(255,255,255,0.10)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 20,
   },
   filterBar: { maxHeight: 44 },
   filterScroll: {
@@ -1131,11 +1137,11 @@ const styles = StyleSheet.create({
   },
   filterTabText: {
     fontSize: 14,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.50)",
     fontFamily: "Inter_400Regular",
   },
   filterTabTextActive: {
-    color: "#202124",
+    color: "#FFFFFF",
     fontFamily: "Inter_600SemiBold",
   },
   filterTabUnderline: {
@@ -1144,7 +1150,7 @@ const styles = StyleSheet.create({
     left: 6,
     right: 6,
     height: 2.5,
-    backgroundColor: "#202124",
+    backgroundColor: "#6EB4FF",
     borderRadius: 2,
   },
 
@@ -1166,22 +1172,22 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.10)",
     borderRadius: 28,
     paddingHorizontal: 16,
     height: 46,
     borderWidth: 1,
-    borderColor: "#dadce0",
+    borderColor: "rgba(255,255,255,0.16)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 1,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#202124",
+    color: "#FFFFFF",
     fontFamily: "Inter_400Regular",
     height: "100%",
   },
@@ -1196,7 +1202,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#f1f3f4",
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1206,13 +1212,15 @@ const styles = StyleSheet.create({
 
   voiceOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.72)",
     justifyContent: "flex-end",
   },
   voiceCard: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#0D0B1E",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     paddingTop: 16,
     paddingHorizontal: 32,
     alignItems: "center",
@@ -1221,7 +1229,7 @@ const styles = StyleSheet.create({
   voiceClose: { position: "absolute", right: 20, top: 16 },
   voiceTitle: {
     fontSize: 17,
-    color: "#202124",
+    color: "#FFFFFF",
     fontFamily: "Inter_600SemiBold",
     marginTop: 20,
   },
@@ -1233,32 +1241,32 @@ const styles = StyleSheet.create({
   },
   voiceTranscript: {
     fontSize: 15,
-    color: "#202124",
+    color: "rgba(255,255,255,0.85)",
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     fontStyle: "italic",
   },
   voiceHint: {
     fontSize: 14,
-    color: "#5f6368",
+    color: "rgba(255,255,255,0.55)",
     fontFamily: "Inter_400Regular",
   },
   voiceStartBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#A2D2FF",
+    backgroundColor: "#6EB4FF",
     borderRadius: 26,
     paddingVertical: 13,
     paddingHorizontal: 32,
   },
   voiceStartText: {
     fontSize: 15,
-    color: "#FFF",
+    color: "#FFFFFF",
     fontFamily: "Inter_600SemiBold",
   },
   voiceStopBtn: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: "rgba(234,67,53,0.20)",
     borderRadius: 26,
     paddingVertical: 13,
     paddingHorizontal: 40,

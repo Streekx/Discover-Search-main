@@ -13,9 +13,9 @@ import {
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
 import { LinearGradient } from "expo-linear-gradient";
-import Colors from "@/constants/colors";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSearch } from "@/context/SearchContext";
+import GalaxyBackground from "@/components/GalaxyBackground";
 
 const { width } = Dimensions.get("window");
 const BASE_URL = "https://discover-main-crawler-streekx.onrender.com";
@@ -188,24 +188,20 @@ export default function AIModeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
-      <LinearGradient
-        colors={["rgba(162,210,255,0.15)", "rgba(255,255,255,0)"]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 0.6 }}
-      />
+      <GalaxyBackground />
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={Colors.light.text} />
+          <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>StreekX AI Chat</Text>
         <TouchableOpacity
           style={styles.modelBtn}
           onPress={() => setShowModelMenu(!showModelMenu)}
         >
-          <MaterialCommunityIcons name="brain" size={18} color={Colors.light.tint} />
+          <MaterialCommunityIcons name="brain" size={18} color="#6EB4FF" />
           <Text style={styles.modelBtnText}>{selectedModel}</Text>
-          <Ionicons name={showModelMenu ? "chevron-up" : "chevron-down"} size={14} color={Colors.light.textSecondary} />
+          <Ionicons name={showModelMenu ? "chevron-up" : "chevron-down"} size={14} color="rgba(255,255,255,0.50)" />
         </TouchableOpacity>
       </View>
 
@@ -225,7 +221,7 @@ export default function AIModeScreen() {
                 {model.charAt(0).toUpperCase() + model.slice(1)}
               </Text>
               {selectedModel === model && (
-                <Ionicons name="checkmark" size={16} color={Colors.light.tint} />
+                <Ionicons name="checkmark" size={16} color="#6EB4FF" />
               )}
             </TouchableOpacity>
           ))}
@@ -310,7 +306,7 @@ export default function AIModeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
+  container: { flex: 1, backgroundColor: "#05050A" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -320,34 +316,34 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.light.accentLight,
+    backgroundColor: "rgba(255,255,255,0.10)",
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { flex: 1, fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.light.text },
+  headerTitle: { flex: 1, fontFamily: "Inter_700Bold", fontSize: 18, color: "#FFFFFF" },
   modelBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: Colors.light.accentLight,
+    backgroundColor: "rgba(110,180,255,0.12)",
     borderRadius: 16,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: "rgba(110,180,255,0.25)",
   },
   modelBtnText: {
     fontFamily: "Inter_500Medium",
     fontSize: 12,
-    color: Colors.light.tint,
+    color: "#6EB4FF",
     textTransform: "capitalize",
   },
 
   modelMenu: {
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(15,12,30,0.95)",
     marginHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: "rgba(255,255,255,0.12)",
     overflow: "hidden",
     marginBottom: 8,
   },
@@ -357,20 +353,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    borderBottomColor: "rgba(255,255,255,0.08)",
     justifyContent: "space-between",
   },
   modelOptionActive: {
-    backgroundColor: "rgba(162,210,255,0.1)",
-    borderBottomColor: Colors.light.tint,
+    backgroundColor: "rgba(110,180,255,0.10)",
+    borderBottomColor: "rgba(110,180,255,0.30)",
   },
   modelOptionText: {
     fontFamily: "Inter_500Medium",
     fontSize: 14,
-    color: Colors.light.text,
+    color: "rgba(255,255,255,0.75)",
   },
   modelOptionTextActive: {
-    color: Colors.light.tint,
+    color: "#6EB4FF",
   },
 
   listContent: { paddingHorizontal: 16, paddingTop: 8 },
@@ -383,7 +379,7 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: Colors.light.tint,
+    backgroundColor: "#1E6FD9",
     borderBottomRightRadius: 6,
   },
   userText: {
@@ -394,22 +390,22 @@ const styles = StyleSheet.create({
   },
   assistantRow: { alignSelf: "flex-start", maxWidth: "90%", marginBottom: 10 },
   aiBubble: {
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 20,
     borderTopLeftRadius: 6,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: "rgba(255,255,255,0.12)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   aiText: {
     fontFamily: "Inter_400Regular",
     fontSize: 15,
-    color: Colors.light.text,
+    color: "rgba(255,255,255,0.88)",
     lineHeight: 23,
   },
 
@@ -421,25 +417,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 10,
     gap: 10,
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(4,3,14,0.94)",
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: "rgba(255,255,255,0.10)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 20,
   },
   inputWrap: {
     flex: 1,
     flexDirection: "row",
     alignItems: "flex-end",
-    backgroundColor: Colors.light.filterInactive,
+    backgroundColor: "rgba(255,255,255,0.09)",
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: "rgba(255,255,255,0.15)",
     minHeight: 46,
     maxHeight: 120,
     gap: 6,
@@ -454,7 +450,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: "Inter_400Regular",
     fontSize: 15,
-    color: Colors.light.text,
+    color: "#FFFFFF",
     maxHeight: 100,
     lineHeight: 22,
   },

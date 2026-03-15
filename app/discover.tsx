@@ -2,15 +2,15 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, Image,
   Platform, RefreshControl, ActivityIndicator, Dimensions, Animated,
-  Share, Alert, ActionSheetIOS, Modal, Pressable, Linking
+  Share, Alert, ActionSheetIOS, Modal, Pressable, Linking, StatusBar
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import Colors from "@/constants/colors";
 import { useSearch } from "@/context/SearchContext";
+import GalaxyBackground from "@/components/GalaxyBackground";
 
 const { width } = Dimensions.get("window");
 const PLACEHOLDER = require("@/assets/images/icon.png");
@@ -341,9 +341,11 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <GalaxyBackground />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={Colors.light.text} />
+          <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Discover</Text>
@@ -354,7 +356,7 @@ export default function DiscoverScreen() {
           onPress={() => { setRefreshing(true); loadArticles(activeCategory, true); }}
         >
           <Animated.View style={{ transform: [{ rotate: refreshing ? "360deg" : "0deg" }] }}>
-            <Ionicons name="refresh-outline" size={22} color={Colors.light.tint} />
+            <Ionicons name="refresh-outline" size={22} color="#6EB4FF" />
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -458,7 +460,7 @@ export default function DiscoverScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
+  container: { flex: 1, backgroundColor: "#05050A" },
 
   header: {
     flexDirection: "row",
@@ -469,14 +471,14 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.light.accentLight,
+    backgroundColor: "rgba(255,255,255,0.10)",
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.light.text },
-  headerSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.light.textSecondary },
+  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: "#FFFFFF" },
+  headerSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.50)" },
   refreshBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.light.accentLight,
+    backgroundColor: "rgba(255,255,255,0.10)",
     alignItems: "center", justifyContent: "center",
   },
 
@@ -486,19 +488,19 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingVertical: 7, paddingHorizontal: 13,
     borderRadius: 20,
-    backgroundColor: Colors.light.filterInactive,
-    borderWidth: 1, borderColor: Colors.light.border,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
   },
-  catChipOn: { backgroundColor: Colors.light.tint, borderColor: Colors.light.tint },
-  catLabel: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.light.textSecondary },
+  catChipOn: { backgroundColor: "#1E6FD9", borderColor: "#1E6FD9" },
+  catLabel: { fontFamily: "Inter_500Medium", fontSize: 12, color: "rgba(255,255,255,0.55)" },
   catLabelOn: { color: "#FFF" },
 
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
-  loadingText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.light.textSecondary },
+  loadingText: { fontFamily: "Inter_400Regular", fontSize: 14, color: "rgba(255,255,255,0.55)" },
 
   errorWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 32 },
-  errorTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.light.text },
-  errorMsg: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.light.textSecondary, textAlign: "center" },
+  errorTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: "#FFFFFF" },
+  errorMsg: { fontFamily: "Inter_400Regular", fontSize: 14, color: "rgba(255,255,255,0.55)", textAlign: "center" },
 
   listContent: { paddingHorizontal: 14, paddingTop: 12 },
 
@@ -506,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, overflow: "hidden",
     height: 240, marginBottom: 14,
     shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 10, elevation: 5,
+    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
   featGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -520,24 +522,24 @@ const styles = StyleSheet.create({
   featDesc: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 18 },
 
   card: {
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(255,255,255,0.07)",
     borderRadius: 16, marginBottom: 12,
     overflow: "hidden",
-    borderWidth: 1, borderColor: Colors.light.border,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 5, elevation: 2,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.10)",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   cardImg: { width: "100%", height: 180 },
   cardImgFallback: { alignItems: "center", justifyContent: "center" },
   cardBody: { padding: 12 },
   cardSourceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 7 },
   favicon: { width: 16, height: 16, borderRadius: 3 },
-  faviconPlaceholder: { backgroundColor: Colors.light.accentLight, alignItems: "center", justifyContent: "center" },
-  sourceName: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.light.textSecondary, flex: 1 },
-  dot: { color: Colors.light.textMuted, fontSize: 12 },
-  timeText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.light.textMuted },
-  cardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.light.text, lineHeight: 22, marginBottom: 5 },
-  cardDesc: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.light.textSecondary, lineHeight: 19 },
+  faviconPlaceholder: { backgroundColor: "rgba(255,255,255,0.10)", alignItems: "center", justifyContent: "center" },
+  sourceName: { fontFamily: "Inter_500Medium", fontSize: 12, color: "rgba(255,255,255,0.50)", flex: 1 },
+  dot: { color: "rgba(255,255,255,0.30)", fontSize: 12 },
+  timeText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.35)" },
+  cardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#FFFFFF", lineHeight: 22, marginBottom: 5 },
+  cardDesc: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 19 },
 
   cardActions: {
     flexDirection: "row",
@@ -546,48 +548,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: "rgba(255,255,255,0.08)",
   },
   cardActionsLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardActionsRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   actionBtn: { padding: 6 },
   videoBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(30,111,217,0.08)",
+    backgroundColor: "rgba(110,180,255,0.15)",
     paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8,
   },
-  videoBadgeText: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.light.tint },
+  videoBadgeText: { fontFamily: "Inter_500Medium", fontSize: 11, color: "#6EB4FF" },
 
   emptyWrap: { alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 16 },
-  emptyText: { fontFamily: "Inter_500Medium", fontSize: 16, color: Colors.light.textSecondary },
+  emptyText: { fontFamily: "Inter_500Medium", fontSize: 16, color: "rgba(255,255,255,0.55)" },
   retryBtn: {
-    backgroundColor: Colors.light.tint, borderRadius: 14,
+    backgroundColor: "#1E6FD9", borderRadius: 14,
     paddingVertical: 11, paddingHorizontal: 28,
   },
   retryText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#FFF" },
 
   modalOverlay: {
-    flex: 1, backgroundColor: "rgba(0,0,0,0.45)",
+    flex: 1, backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "flex-end",
   },
   moreMenu: {
-    backgroundColor: "#FFF", borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    backgroundColor: "#0D0B1E", borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    borderTopWidth: 1, borderColor: "rgba(255,255,255,0.12)",
     paddingHorizontal: 20, paddingBottom: 32, paddingTop: 12,
   },
   moreHandle: {
     width: 38, height: 4, borderRadius: 2,
-    backgroundColor: Colors.light.border,
+    backgroundColor: "rgba(255,255,255,0.20)",
     alignSelf: "center", marginBottom: 16,
   },
   moreTitle: {
-    fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.light.text,
+    fontFamily: "Inter_600SemiBold", fontSize: 14, color: "rgba(255,255,255,0.80)",
     marginBottom: 16, paddingHorizontal: 4,
   },
   moreRow: {
     flexDirection: "row", alignItems: "center", gap: 14,
     paddingVertical: 14,
-    borderTopWidth: 1, borderTopColor: Colors.light.border,
+    borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)",
   },
   moreRowLast: { borderBottomWidth: 0 },
-  moreRowText: { fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.light.text },
+  moreRowText: { fontFamily: "Inter_500Medium", fontSize: 15, color: "rgba(255,255,255,0.85)" },
 });

@@ -119,7 +119,7 @@ export default function BrowserScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={{ height: topPad, backgroundColor: "#FFF" }} />
+      <View style={{ height: topPad, backgroundColor: "rgba(5,4,15,0.96)" }} />
 
       {loading && (
         <View style={styles.progressTrack}>
@@ -163,7 +163,7 @@ export default function BrowserScreen() {
           <Ionicons
             name="chevron-back"
             size={22}
-            color={canGoBack ? Colors.light.text : Colors.light.tint}
+            color={canGoBack ? "rgba(255,255,255,0.85)" : "#6EB4FF"}
           />
         </TouchableOpacity>
 
@@ -172,7 +172,7 @@ export default function BrowserScreen() {
           style={[styles.navBtn, !canGoForward && styles.navBtnDim]}
           disabled={!canGoForward}
         >
-          <Ionicons name="chevron-forward" size={22} color={canGoForward ? Colors.light.text : Colors.light.textMuted} />
+          <Ionicons name="chevron-forward" size={22} color={canGoForward ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.30)"} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.urlBar} onPress={() => setUrlFocused(true)} activeOpacity={0.85}>
@@ -209,7 +209,7 @@ export default function BrowserScreen() {
           <Ionicons
             name={loading ? "close-circle-outline" : "refresh-outline"}
             size={20}
-            color={Colors.light.text}
+            color="rgba(255,255,255,0.75)"
           />
         </TouchableOpacity>
 
@@ -217,7 +217,7 @@ export default function BrowserScreen() {
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMenuVisible(true); }}
           style={styles.navBtn}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color={Colors.light.text} />
+          <Ionicons name="ellipsis-vertical" size={20} color="rgba(255,255,255,0.75)" />
         </TouchableOpacity>
       </View>
 
@@ -226,7 +226,7 @@ export default function BrowserScreen() {
           <View style={[styles.menuSheet, { paddingBottom: botPad + 16 }]}>
             <View style={styles.handle} />
             <View style={styles.menuPageInfo}>
-              <Ionicons name="globe-outline" size={18} color={Colors.light.textSecondary} />
+              <Ionicons name="globe-outline" size={18} color="rgba(255,255,255,0.50)" />
               <Text style={styles.menuPageTitle} numberOfLines={1}>
                 {pageTitle || getDomain(currentUrl)}
               </Text>
@@ -235,7 +235,7 @@ export default function BrowserScreen() {
             {menuOptions.map((opt, idx) => (
               <TouchableOpacity key={idx} style={styles.menuItem} onPress={opt.action} activeOpacity={0.7}>
                 <View style={styles.menuIcon}>
-                  <Ionicons name={opt.icon as any} size={20} color={Colors.light.tint} />
+                  <Ionicons name={opt.icon as any} size={20} color="#6EB4FF" />
                 </View>
                 <Text style={styles.menuLabel}>{opt.label}</Text>
               </TouchableOpacity>
@@ -248,19 +248,19 @@ export default function BrowserScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF" },
-  progressTrack: { height: 3, backgroundColor: Colors.light.filterInactive },
-  progressFill: { height: "100%", backgroundColor: Colors.light.tint, borderRadius: 1.5 },
+  container: { flex: 1, backgroundColor: "#05050A" },
+  progressTrack: { height: 3, backgroundColor: "rgba(255,255,255,0.08)" },
+  progressFill: { height: "100%", backgroundColor: "#6EB4FF", borderRadius: 1.5 },
   webview: { flex: 1 },
   webFallback: {
     flex: 1, alignItems: "center", justifyContent: "center",
-    gap: 16, backgroundColor: Colors.light.background,
+    gap: 16, backgroundColor: "#05050A",
   },
   webFallbackTitle: {
-    fontFamily: "Inter_500Medium", fontSize: 17, color: Colors.light.text,
+    fontFamily: "Inter_500Medium", fontSize: 17, color: "rgba(255,255,255,0.85)",
   },
   openBtn: {
-    backgroundColor: Colors.light.tint, borderRadius: 14,
+    backgroundColor: "#1E6FD9", borderRadius: 14,
     paddingVertical: 12, paddingHorizontal: 28,
   },
   openBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#FFF" },
@@ -270,15 +270,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 6,
     paddingTop: 10,
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(5,4,15,0.96)",
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: "rgba(255,255,255,0.10)",
     gap: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 20,
   },
   navBtn: {
     width: 40,
@@ -291,42 +291,44 @@ const styles = StyleSheet.create({
   urlBar: {
     flex: 1,
     height: 38,
-    backgroundColor: Colors.light.filterInactive,
+    backgroundColor: "rgba(255,255,255,0.09)",
     borderRadius: 20,
     paddingHorizontal: 12,
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: "rgba(255,255,255,0.14)",
   },
   urlDisplay: { flexDirection: "row", alignItems: "center" },
   urlText: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: Colors.light.text,
+    color: "rgba(255,255,255,0.80)",
     flex: 1,
   },
   urlInput: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: Colors.light.text,
+    color: "#FFFFFF",
     height: "100%",
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.48)",
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "flex-end",
   },
   menuSheet: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#0D0B1E",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     paddingTop: 10,
     paddingHorizontal: 12,
   },
   handle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: Colors.light.border,
+    backgroundColor: "rgba(255,255,255,0.20)",
     alignSelf: "center",
     marginBottom: 14,
   },
@@ -340,10 +342,10 @@ const styles = StyleSheet.create({
   menuPageTitle: {
     fontFamily: "Inter_500Medium",
     fontSize: 14,
-    color: Colors.light.text,
+    color: "rgba(255,255,255,0.80)",
     flex: 1,
   },
-  menuSeparator: { height: 1, backgroundColor: Colors.light.border, marginHorizontal: 8, marginBottom: 8 },
+  menuSeparator: { height: 1, backgroundColor: "rgba(255,255,255,0.10)", marginHorizontal: 8, marginBottom: 8 },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -356,13 +358,13 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: Colors.light.accentLight,
+    backgroundColor: "rgba(110,180,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
   menuLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 15,
-    color: Colors.light.text,
+    color: "rgba(255,255,255,0.85)",
   },
 });
